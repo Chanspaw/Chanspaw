@@ -1,0 +1,704 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                          String                @id
+  email                       String                @unique
+  username                    String                @unique
+  password                    String
+  firstName                   String?
+  lastName                    String?
+  dateOfBirth                 DateTime?
+  avatar                      String?
+  real_balance                Float                 @default(0)
+  virtual_balance             Float                 @default(0)
+  roleId                      String?
+  isVerified                  Boolean               @default(false)
+  isActive                    Boolean               @default(true)
+  isAdmin                     Boolean               @default(false)
+  createdAt                   DateTime              @default(now())
+  updatedAt                   DateTime              @updatedAt
+  isOwner                     Boolean               @default(false)
+  commissionEarnings          CommissionEarning[]
+  emailVerifications          EmailVerification[]
+  receivedFriendRequests      FriendRequest[]       @relation("Receiver")
+  sentFriendRequests          FriendRequest[]       @relation("Sender")
+  friendsOf                   Friendship[]          @relation("Friend")
+  friends                     Friendship[]          @relation("User")
+  gameResults                 GameResult[]
+  kycDocuments                KYCDocument[]
+  receivedMessages            Message[]             @relation("Receiver")
+  sentMessages                Message[]             @relation("Sender")
+  notifications               Notification[]
+  supportTickets              SupportTicket[]
+  transactions                Transaction[]
+  adminSessions               AdminSession[]        @relation("AdminSessions")
+  apiKeys                     ApiKey[]              @relation("ApiKeyAdmin")
+  adminAuditLogs              AuditLog[]            @relation("AdminAuditLogs")
+  userAuditLogs               AuditLog[]            @relation("UserAuditLogs")
+  complianceReports           ComplianceReport[]    @relation("ComplianceReportAdmin")
+  complianceViolationResolver ComplianceViolation[] @relation("ComplianceViolationResolver")
+  complianceViolations        ComplianceViolation[]
+  authoredContent             Content[]             @relation("ContentAuthor")
+  contentComments             ContentComment[]      @relation("ContentCommentAuthor")
+  contentVersions             ContentVersion[]      @relation("ContentVersionAuthor")
+  databaseQueries             DatabaseQuery[]       @relation("DatabaseQueryUser")
+  generatedReports            GeneratedReport[]     @relation("GeneratedReportAdmin")
+  integrations                Integration[]         @relation("IntegrationAdmin")
+  mediaAssets                 MediaAsset[]          @relation("MediaUploader")
+  ownerWithdrawals            OwnerWithdrawal[]     @relation("OwnerWithdrawalProcessor")
+  grantedOverrides            PermissionOverride[]  @relation("AdminPermissionOverrides")
+  permissionOverrides         PermissionOverride[]  @relation("UserPermissionOverrides")
+  reportTemplates             ReportTemplate[]      @relation("ReportTemplateAdmin")
+  assignedRoles               RoleAssignment[]      @relation("AdminRoleAssignments")
+  roleAssignments             RoleAssignment[]      @relation("UserRoleAssignments")
+  role                        Role?                 @relation(fields: [roleId], references: [id])
+  webhooks                    Webhook[]             @relation("WebhookAdmin")
+
+  @@map("users")
+}
+
+model FriendRequest {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+  friend    User     @relation("Friend", fields: [friendId], references: [id], onDelete: Cascade)
+  user      User     @relation("User", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User     @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model GameResult {
+  id        String   @id @default(uuid())
+  userId    String
+  gameType  String
+  result    String
+  betAmount Float    @default(0)
+  winAmount Float    @default(0)
+  matchType String   @default("real")
+  metadata  String?
+  score     Int?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  amount      Float
+  status      String
+  description String?
+  metadata    String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model KYCDocument {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  url       String
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String
+  subject   String
+  message   String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CommissionEarning {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlatformProfit {
+  id        String   @id @default(uuid())
+  date      DateTime @default(now())
+  gameType  String?
+  totalBets Float    @default(0)
+  totalWins Float    @default(0)
+  houseEdge Float    @default(0)
+  profit    Float    @default(0)
+  source    String
+  metadata  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_profits")
+}
+
+model OwnerWithdrawal {
+  id              String    @id @default(uuid())
+  amount          Float
+  method          String
+  accountDetails  String?
+  status          String    @default("PENDING")
+  reason          String?
+  processedBy     String?
+  processedAt     DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  processedByUser User?     @relation("OwnerWithdrawalProcessor", fields: [processedBy], references: [id])
+
+  @@map("owner_withdrawals")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Match {
+  id          String    @id @default(uuid())
+  gameType    String
+  player1Id   String
+  player2Id   String
+  betAmount   Float
+  status      String
+  winnerId    String?
+  gameState   String
+  escrow      Float?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  matchType   String    @default("real")
+}
+
+model MatchmakingQueue {
+  id        String   @id @default(uuid())
+  userId    String
+  username  String
+  gameType  String
+  betAmount Float
+  matchType String   @default("real")
+  status    String   @default("waiting")
+  joinedAt  DateTime @default(now())
+}
+
+model GameMove {
+  id        String   @id @default(uuid())
+  matchId   String
+  userId    String
+  moveData  String
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  adminId      String?
+  userId       String?
+  action       String
+  resourceType String?
+  resourceId   String?
+  details      String?
+  ip           String?
+  userAgent    String?
+  success      Boolean  @default(true)
+  errorMessage String?
+  metadata     String?
+  createdAt    DateTime @default(now())
+  admin        User?    @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  targetUser   User?    @relation("UserAuditLogs", fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model AdminSession {
+  id           String   @id @default(uuid())
+  adminId      String
+  sessionToken String   @unique
+  ip           String?
+  userAgent    String?
+  isActive     Boolean  @default(true)
+  lastActivity DateTime @default(now())
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  admin        User     @relation("AdminSessions", fields: [adminId], references: [id])
+
+  @@map("admin_sessions")
+}
+
+model AdminLoginAttempt {
+  id            String   @id @default(uuid())
+  email         String
+  ip            String?
+  userAgent     String?
+  success       Boolean
+  failureReason String?
+  createdAt     DateTime @default(now())
+
+  @@map("admin_login_attempts")
+}
+
+model Game {
+  id          String     @id @default(uuid())
+  name        String
+  description String
+  icon        String
+  minBet      Float      @default(0)
+  maxBet      Float      @default(0)
+  players     String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  rules       GameRule[]
+
+  @@map("games")
+}
+
+model GameRule {
+  id          String   @id @default(uuid())
+  gameId      String
+  name        String
+  type        String
+  value       String
+  description String
+  options     String[]
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@map("game_rules")
+}
+
+model Content {
+  id          String           @id @default(uuid())
+  title       String
+  content     String
+  type        String
+  status      String           @default("draft")
+  authorId    String
+  tags        String[]
+  metadata    Json?
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  author      User             @relation("ContentAuthor", fields: [authorId], references: [id])
+  comments    ContentComment[]
+  versions    ContentVersion[]
+
+  @@map("content")
+}
+
+model ContentVersion {
+  id          String   @id @default(uuid())
+  contentId   String
+  version     Int
+  title       String
+  contentText String
+  changes     String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  content     Content  @relation(fields: [contentId], references: [id])
+  author      User     @relation("ContentVersionAuthor", fields: [createdBy], references: [id])
+
+  @@map("content_versions")
+}
+
+model ContentComment {
+  id        String   @id @default(uuid())
+  contentId String
+  authorId  String
+  comment   String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author    User     @relation("ContentCommentAuthor", fields: [authorId], references: [id])
+  content   Content  @relation(fields: [contentId], references: [id])
+
+  @@map("content_comments")
+}
+
+model ContentTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  template    String
+  variables   Json?
+  type        String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("content_templates")
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  path         String
+  url          String
+  altText      String?
+  caption      String?
+  tags         String[]
+  uploadedBy   String
+  isPublic     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  uploader     User     @relation("MediaUploader", fields: [uploadedBy], references: [id])
+
+  @@map("media_assets")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  roleAssignments RoleAssignment[]
+  users           User[]
+  permissions     Permission[]     @relation("PermissionToRole")
+
+  @@map("roles")
+}
+
+model Permission {
+  id                  String               @id @default(uuid())
+  name                String               @unique
+  description         String?
+  resource            String
+  action              String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  permissionOverrides PermissionOverride[]
+  roles               Role[]               @relation("PermissionToRole")
+
+  @@map("permissions")
+}
+
+model RoleAssignment {
+  id         String    @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedBy String
+  assignedAt DateTime  @default(now())
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+  admin      User      @relation("AdminRoleAssignments", fields: [assignedBy], references: [id])
+  role       Role      @relation(fields: [roleId], references: [id])
+  user       User      @relation("UserRoleAssignments", fields: [userId], references: [id])
+
+  @@map("role_assignments")
+}
+
+model PermissionOverride {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  grantedBy    String
+  isGranted    Boolean    @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime   @default(now())
+  admin        User       @relation("AdminPermissionOverrides", fields: [grantedBy], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation("UserPermissionOverrides", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("permission_overrides")
+}
+
+model ComplianceReport {
+  id          String   @id @default(uuid())
+  reportType  String
+  status      String   @default("PENDING")
+  data        String
+  findings    String?
+  riskScore   Int?
+  generatedBy String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  admin       User     @relation("ComplianceReportAdmin", fields: [generatedBy], references: [id], onDelete: Cascade)
+
+  @@map("compliance_reports")
+}
+
+model ComplianceRule {
+  id          String                @id @default(uuid())
+  name        String
+  description String
+  ruleType    String
+  conditions  String
+  actions     String
+  isActive    Boolean               @default(true)
+  priority    Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  violations  ComplianceViolation[]
+
+  @@map("compliance_rules")
+}
+
+model ComplianceViolation {
+  id            String         @id @default(uuid())
+  userId        String
+  ruleId        String
+  violationType String
+  severity      String
+  description   String
+  evidence      String?
+  status        String         @default("OPEN")
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  resolver      User?          @relation("ComplianceViolationResolver", fields: [resolvedBy], references: [id])
+  rule          ComplianceRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("compliance_violations")
+}
+
+model ReportTemplate {
+  id               String            @id @default(uuid())
+  name             String
+  description      String
+  category         String
+  query            String
+  parameters       String?
+  schedule         String?
+  isActive         Boolean           @default(true)
+  createdBy        String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  generatedReports GeneratedReport[]
+  schedules        ReportSchedule[]
+  admin            User              @relation("ReportTemplateAdmin", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("report_templates")
+}
+
+model GeneratedReport {
+  id          String         @id @default(uuid())
+  templateId  String
+  generatedBy String
+  fileName    String
+  filePath    String
+  fileSize    Int
+  format      String
+  parameters  String?
+  status      String         @default("GENERATING")
+  downloadUrl String?
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+  admin       User           @relation("GeneratedReportAdmin", fields: [generatedBy], references: [id], onDelete: Cascade)
+  template    ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("generated_reports")
+}
+
+model ReportSchedule {
+  id         String         @id @default(uuid())
+  templateId String
+  schedule   String
+  recipients String
+  isActive   Boolean        @default(true)
+  lastRun    DateTime?
+  nextRun    DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  template   ReportTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("report_schedules")
+}
+
+model ApiKey {
+  id          String       @id @default(uuid())
+  name        String
+  key         String       @unique
+  permissions String
+  rateLimit   Int          @default(1000)
+  isActive    Boolean      @default(true)
+  expiresAt   DateTime?
+  lastUsed    DateTime?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  admin       User         @relation("ApiKeyAdmin", fields: [createdBy], references: [id], onDelete: Cascade)
+  requests    ApiRequest[]
+
+  @@map("api_keys")
+}
+
+model ApiRequest {
+  id           String   @id @default(uuid())
+  apiKeyId     String?
+  endpoint     String
+  method       String
+  status       Int
+  duration     Int
+  ipAddress    String
+  userAgent    String?
+  requestBody  String?
+  responseBody String?
+  createdAt    DateTime @default(now())
+  apiKey       ApiKey?  @relation(fields: [apiKeyId], references: [id])
+
+  @@map("api_requests")
+}
+
+model ApiEndpoint {
+  id          String   @id @default(uuid())
+  path        String
+  method      String
+  description String
+  rateLimit   Int      @default(1000)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([path, method])
+  @@map("api_endpoints")
+}
+
+model Integration {
+  id          String           @id @default(uuid())
+  name        String
+  type        String
+  provider    String
+  config      String
+  credentials String
+  isActive    Boolean          @default(true)
+  lastSync    DateTime?
+  syncStatus  String           @default("IDLE")
+  errorLog    String?
+  createdBy   String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  logs        IntegrationLog[]
+  admin       User             @relation("IntegrationAdmin", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("integrations")
+}
+
+model IntegrationLog {
+  id            String      @id @default(uuid())
+  integrationId String
+  event         String
+  status        String
+  data          String?
+  errorMessage  String?
+  duration      Int?
+  createdAt     DateTime    @default(now())
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@map("integration_logs")
+}
+
+model Webhook {
+  id           String            @id @default(uuid())
+  name         String
+  url          String
+  events       String
+  secret       String
+  isActive     Boolean           @default(true)
+  lastTrigger  DateTime?
+  failureCount Int               @default(0)
+  createdBy    String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deliveries   WebhookDelivery[]
+  admin        User              @relation("WebhookAdmin", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id        String   @id @default(uuid())
+  webhookId String
+  event     String
+  payload   String
+  status    String
+  response  String?
+  duration  Int?
+  createdAt DateTime @default(now())
+  webhook   Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_deliveries")
+}
+
+model PerformanceMetric {
+  id        String   @id @default(uuid())
+  metric    String
+  value     Float
+  unit      String
+  timestamp DateTime @default(now())
+  metadata  String?
+
+  @@map("performance_metrics")
+}
+
+model CacheEntry {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  ttl       Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("cache_entries")
+}
+
+model DatabaseQuery {
+  id        String   @id @default(uuid())
+  query     String
+  duration  Int
+  timestamp DateTime @default(now())
+  userId    String?
+  user      User?    @relation("DatabaseQueryUser", fields: [userId], references: [id])
+
+  @@map("database_queries")
+}
