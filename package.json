@@ -12,7 +12,8 @@
     "start:backend": "cd backend && node server.js",
     "start:frontend": "npm run dev",
     "build:production": "node build-production.cjs",
-    "deploy": "npm run build:production && echo 'Production build ready in dist folder!'"
+    "deploy": "npm run build:production && echo 'Production build ready in dist folder!'",
+    "postinstall": "npm install @vitejs/plugin-react"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
