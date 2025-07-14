@@ -75,26 +75,32 @@ const { payoutWinnings } = require('./services/walletService');
 const app = express();
 const PORT = process.env.PORT || 3002;
 
+// Fix: Trust proxy for Render and reverse proxies
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:5179',
+  'http://localhost:5180',
+  'https://chanspaw.com',
+  'https://www.chanspaw.com',
+  'https://chanspaw.onrender.com'
+];
 app.use('/api', cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176',
-      'http://localhost:5177',
-      'http://localhost:5178',
-      'http://localhost:5179',
-      'http://localhost:5180'
-    ];
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -108,16 +114,6 @@ app.use('/auth', cors({
     if (origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176',
-      'http://localhost:5177',
-      'http://localhost:5178',
-      'http://localhost:5179',
-      'http://localhost:5180'
-    ];
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
