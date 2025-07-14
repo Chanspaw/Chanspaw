@@ -106,12 +106,12 @@ router.put('/change-password', asyncHandler(async (req, res) => {
   // Récupérer l'utilisateur avec le hash du mot de passe
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-    select: { passwordHash: true }
+    select: { password: true }
   });
 
   // Vérifier le mot de passe actuel
   const bcrypt = require('bcrypt');
-  const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+  const isValidPassword = await bcrypt.compare(currentPassword, user.password);
   
   if (!isValidPassword) {
     return res.status(400).json({
@@ -136,7 +136,7 @@ router.put('/change-password', asyncHandler(async (req, res) => {
   await prisma.user.update({
     where: { id: req.user.id },
     data: {
-      passwordHash: hashedPassword,
+      password: hashedPassword,
       passwordChangedAt: new Date()
     }
   });
