@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/errorHandler');
 const matchmakingService = require('../services/matchmakingService');
 const requireAdmin = require('../middleware/auth').requireAdmin;
+const { payoutWinnings } = require('../services/walletService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -523,28 +524,18 @@ router.post('/match/:matchId/move', (req, res, next) => req.app.get('gameActionL
     // If match ended, payout winner and fee
     if (winnerId !== null && winnerId !== undefined) {
       const matchRecord = await tx.match.findUnique({ where: { id: matchId } });
-      const totalPot = matchRecord.escrow || (matchRecord.betAmount * 2);
-      const platformFee = Math.floor(totalPot * PLATFORM_FEE_PERCENT / 100);
-      const winnerAmount = totalPot - platformFee;
-      
-      // Credit winner based on match type
-      const balanceField = matchRecord.matchType === 'real' ? 'real_balance' : 'virtual_balance';
-      await tx.user.update({ 
-        where: { id: winnerId }, 
-        data: { [balanceField]: { increment: winnerAmount } }
-      });
-      
+      // Use payoutWinnings for all wallet types
+      await payoutWinnings(winnerId, matchRecord.betAmount, matchRecord.matchType);
       // Log audit
-      await tx.auditLog.create({ data: { userId: winnerId, action: 'PAYOUT_WIN', details: JSON.stringify({ matchId, winnerAmount, platformFee, matchType: matchRecord.matchType, platformFeePercent: PLATFORM_FEE_PERCENT }) } });
-      
+      await tx.auditLog.create({ data: { userId: winnerId, action: 'PAYOUT_WIN', details: JSON.stringify({ matchId, winnerAmount: Math.floor(matchRecord.betAmount * 2 * 0.9), platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), matchType: matchRecord.matchType, platformFeePercent: 10 }) } });
       // Only create transaction records for real money
       if (matchRecord.matchType === 'real') {
-        await tx.auditLog.create({ data: { userId: null, action: 'PLATFORM_FEE', details: JSON.stringify({ matchId, platformFee, platformFeePercent: PLATFORM_FEE_PERCENT }) } });
+        await tx.auditLog.create({ data: { userId: null, action: 'PLATFORM_FEE', details: JSON.stringify({ matchId, platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), platformFeePercent: 10 }) } });
         await tx.transaction.create({ 
           data: { 
             userId: winnerId, 
             type: 'GAME_WIN', 
-            amount: winnerAmount, 
+            amount: Math.floor(matchRecord.betAmount * 2 * 0.9), 
             status: 'COMPLETED', 
             description: `Win for match ${matchId}`, 
             metadata: JSON.stringify({ matchId, matchType: 'real' }) 
@@ -554,7 +545,7 @@ router.post('/match/:matchId/move', (req, res, next) => req.app.get('gameActionL
           data: { 
             userId: null, 
             type: 'PLATFORM_FEE', 
-            amount: platformFee, 
+            amount: Math.ceil(matchRecord.betAmount * 2 * 0.1), 
             status: 'COMPLETED', 
             description: `Platform fee for match ${matchId}`, 
             metadata: JSON.stringify({ matchId, matchType: 'real' }) 
