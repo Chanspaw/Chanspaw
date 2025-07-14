@@ -9,6 +9,7 @@ import { MatchmakingWaitingRoom } from './MatchmakingWaitingRoom';
 import { getSocket, testSocket } from '../../utils/socket';
 import { GameControls } from '../UI/GameControls';
 import { getGameId } from '../../utils/gameId';
+import { MatchChat } from './MatchChat';
 
 interface DiceBattleProps {
   onGameEnd: (winner: string) => void;
@@ -103,6 +104,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
 
   // Add state for interrupted match
   const [matchInterrupted, setMatchInterrupted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Load user balances
   useEffect(() => {
@@ -977,6 +979,14 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
             />
           </div>
         </div>
+        <MatchChat
+          matchId={currentMatchId || ''}
+          currentUserId={user?.id || ''}
+          currentUsername={user?.username || ''}
+          opponentName={opponentId || ''}
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen((v) => !v)}
+        />
       </div>
     );
   }

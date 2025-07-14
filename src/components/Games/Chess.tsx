@@ -10,6 +10,7 @@ import { MatchmakingWaitingRoom } from './MatchmakingWaitingRoom';
 import { ChessBoard } from './ChessBoard';
 import { useChessEngine } from './useChessEngine';
 import { getGameId } from '../../utils/gameId';
+import { MatchChat } from './MatchChat';
 
 interface ChessProps {
   onGameEnd?: (winnerId: string) => void;
@@ -49,6 +50,7 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
   const [userBalances, setUserBalances] = useState({ real_balance: 0, virtual_balance: 0 });
   const [timer, setTimer] = useState<number>(60);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Chess engine hook
   const chessEngine = useChessEngine();
@@ -603,6 +605,14 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
             </div>
           </div>
         </div>
+        <MatchChat
+          matchId={matchId || ''}
+          currentUserId={user?.id || ''}
+          currentUsername={user?.username || ''}
+          opponentName={opponent || ''}
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen((v) => !v)}
+        />
       </>
     );
   }

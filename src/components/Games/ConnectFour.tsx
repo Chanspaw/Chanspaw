@@ -9,6 +9,7 @@ import { MatchmakingWaitingRoom } from './MatchmakingWaitingRoom';
 import { getSocket, testSocket } from '../../utils/socket';
 import { GameControls } from '../UI/GameControls';
 import { getGameId } from '../../utils/gameId';
+import { MatchChat } from './MatchChat';
 
 export function ConnectFour() {
   const { user } = useAuth();
@@ -35,6 +36,7 @@ export function ConnectFour() {
   const [resultModalShown, setResultModalShown] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [rules, setRules] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Listen for matchFound event
   useEffect(() => {
@@ -874,6 +876,15 @@ export function ConnectFour() {
           </div>
         </div>
       )}
+
+      <MatchChat
+        matchId={currentMatchId || ''}
+        currentUserId={user?.id || ''}
+        currentUsername={user?.username || ''}
+        opponentName={opponentId || ''}
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen((v) => !v)}
+      />
     </div>
   );
 } 

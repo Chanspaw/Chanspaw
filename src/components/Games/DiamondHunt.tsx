@@ -9,6 +9,7 @@ import { MatchmakingWaitingRoom } from './MatchmakingWaitingRoom';
 import { getSocket, testSocket } from '../../utils/socket';
 import { GameControls } from '../UI/GameControls';
 import { getGameId } from '../../utils/gameId';
+import { MatchChat } from './MatchChat';
 
 interface DiamondHuntProps {
   onGameEnd?: (result: { winner: string; stake: number; result: string }) => void;
@@ -43,6 +44,7 @@ export function DiamondHunt({ onGameEnd }: DiamondHuntProps) {
   const [resultModalData, setResultModalData] = useState<{ isWin: boolean; isDraw: boolean }>({ isWin: false, isDraw: false });
   const [showRules, setShowRules] = useState(false);
   const [rules, setRules] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -741,6 +743,15 @@ export function DiamondHunt({ onGameEnd }: DiamondHuntProps) {
           </div>
         </div>
       )}
+
+      <MatchChat
+        matchId={currentMatchId || ''}
+        currentUserId={user?.id || ''}
+        currentUsername={user?.username || ''}
+        opponentName={opponentId || ''}
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen((v) => !v)}
+      />
     </div>
   );
 }

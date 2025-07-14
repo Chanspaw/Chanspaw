@@ -10,6 +10,7 @@ import { MatchmakingWaitingRoom } from './MatchmakingWaitingRoom';
 import { getSocket, testSocket } from '../../utils/socket';
 import { GameControls } from '../UI/GameControls';
 import { getGameId } from '../../utils/gameId';
+import { MatchChat } from './MatchChat';
 
 interface TicTacToe5x5Props {
   onGameEnd: (winner: string) => void;
@@ -53,6 +54,7 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
   const [showRules, setShowRules] = useState(false);
   const [rules, setRules] = useState('');
   const [resultModalShown, setResultModalShown] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   console.log('RENDER TicTacToe5x5:', { gameStatus, board, isPracticeMode });
 
@@ -974,6 +976,14 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
           </div>
         </div>
       )}
+      <MatchChat
+        matchId={currentMatchId || ''}
+        currentUserId={user?.id || ''}
+        currentUsername={user?.username || ''}
+        opponentName={opponentId || ''}
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen((v) => !v)}
+      />
     </div>
   );
 }
