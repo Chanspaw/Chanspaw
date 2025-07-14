@@ -1585,7 +1585,21 @@ io.on('connection', async (socket) => {
       
       // Try the move - only add promotion if it's a pawn promotion
       const moveObj = { from: move.from, to: move.to };
-      if (move.promotion) {
+      // Detect if this is a pawn promotion
+      const isPawnPromotion = (() => {
+        if (!chess) return false;
+        const piece = chess.get(move.from);
+        if (!piece || piece.type !== 'p') return false;
+        const toRank = parseInt(move.to[1], 10);
+        return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+      })();
+      if (isPawnPromotion) {
+        if (!move.promotion || !['q','r','b','n'].includes(move.promotion)) {
+          socket.emit('promotionRequired', { from: move.from, to: move.to });
+          return;
+        }
+        moveObj.promotion = move.promotion;
+      } else if (move.promotion) {
         moveObj.promotion = move.promotion;
       }
       let result;

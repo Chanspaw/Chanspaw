@@ -51,6 +51,8 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
   const [timer, setTimer] = useState<number>(60);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [promotionModal, setPromotionModal] = useState<{ from: string; to: string } | null>(null);
+  const [pendingMove, setPendingMove] = useState<any>(null);
 
   // Chess engine hook
   const chessEngine = useChessEngine();
@@ -264,16 +266,12 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
                          piece && piece.type === 'pawn' && piece.color === 'black' && square[1] === '1' ? 'queen' : undefined;
         
         if (gameMode === 'online' && socket && currentMatchId && piece) {
-        socket.emit('makeMove', {
-          matchId: currentMatchId,
-          gameType: 'chess',
-            move: {
-              from: selectedSquare,
-              to: square,
-              piece: piece,
-              promotion
-            }
-          });
+          setPendingMove({ from: selectedSquare, to: square });
+          if (promotion) {
+            setPromotionModal({ from: selectedSquare, to: square });
+          } else {
+            sendMove(currentMatchId, { from: selectedSquare, to: square });
+          }
         } else if (piece) {
           // Local game
           chessEngine.makeMove(selectedSquare, square, piece, promotion);
@@ -613,6 +611,22 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
           isOpen={isChatOpen}
           onToggle={() => setIsChatOpen((v) => !v)}
         />
+        <AnimatePresence>
+  {promotionModal && (
+    <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="bg-gaming-dark/90 rounded-xl p-6 shadow-2xl border border-blue-500 flex flex-col items-center">
+        <h2 className="text-lg font-bold text-white mb-4">Promote Pawn</h2>
+        <div className="flex space-x-4">
+          {['q','r','b','n'].map(piece => (
+            <button key={piece} onClick={() => handlePromotionSelect(piece)} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg shadow-lg hover:scale-110 transition-transform text-2xl">
+              {piece === 'q' ? '♛' : piece === 'r' ? '♜' : piece === 'b' ? '♝' : '♞'}
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
       </>
     );
   }
