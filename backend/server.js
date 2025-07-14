@@ -79,20 +79,15 @@ const PORT = process.env.PORT || 3002;
 app.use(helmet());
 
 // CORS configuration
-app.use(cors({
+app.use('/api', cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
-    // Allow localhost on any port for development
     if (origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
-    
-    // Allow specific production origins if needed
     const allowedOrigins = [
       'http://localhost:5173',
-      'http://localhost:5174', 
+      'http://localhost:5174',
       'http://localhost:5175',
       'http://localhost:5176',
       'http://localhost:5177',
@@ -100,11 +95,32 @@ app.use(cors({
       'http://localhost:5179',
       'http://localhost:5180'
     ];
-    
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
+app.use('/auth', cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:5176',
+      'http://localhost:5177',
+      'http://localhost:5178',
+      'http://localhost:5179',
+      'http://localhost:5180'
+    ];
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true
