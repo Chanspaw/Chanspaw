@@ -100,27 +100,23 @@ app.get('/health', (req, res) => {
 });
 
 // Game API endpoints
-app.post('/api/game/initialize', (req, res) => {
+// Replace local match creation with backend call
+app.post('/api/game/initialize', async (req, res) => {
+  const { matchId, player1, player2, stake, walletMode } = req.body;
+  if (!matchId || !player1 || !player2) {
+    return res.status(400).json({ success: false, error: 'Missing required parameters', required: ['matchId', 'player1', 'player2'] });
+  }
   try {
-    const { matchId, player1, player2, stake, walletMode } = req.body;
-    
-    if (!matchId || !player1 || !player2) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Missing required parameters',
-        required: ['matchId', 'player1', 'player2']
-      });
+    // Call backend to create match and deduct stakes
+    const backendRes = await fetch(process.env.BACKEND_URL + '/api/match/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId, player1, player2, stake, walletMode })
+    });
+    const backendData = await backendRes.json();
+    if (!backendRes.ok) {
+      return res.status(400).json({ success: false, error: backendData.error || 'Failed to create match' });
     }
-
-    // Check if game already exists
-    if (activeGames.has(matchId)) {
-      return res.status(409).json({ 
-        success: false,
-        error: 'Game already exists',
-        matchId 
-      });
-    }
-
     const gameState = {
       matchId,
       player1,
@@ -135,23 +131,11 @@ app.post('/api/game/initialize', (req, res) => {
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString()
     };
-
     activeGames.set(matchId, gameState);
     gameStates.set(matchId, gameState);
-
-    logger.info('Diamond game initialized', { matchId, player1, player2, stake });
-
-    res.json({
-      success: true,
-      gameState,
-      message: 'Diamond Hunt game initialized'
-    });
-  } catch (error) {
-    logger.error('Error initializing game', { error: error.message, stack: error.stack });
-    res.status(500).json({ 
-      success: false,
-      error: 'Internal server error' 
-    });
+    res.json({ success: true, gameState, message: 'Diamond Hunt game initialized' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

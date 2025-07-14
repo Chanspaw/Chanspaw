@@ -9,7 +9,6 @@ interface AuthContextType {
   login: (email: string, password: string, twoFactorCode?: string) => Promise<{ success: boolean; message?: string; requiresTwoFactor?: boolean; requiresKYC?: boolean }>;
   register: (username: string, email: string, password: string, firstName?: string, lastName?: string, phoneNumber?: string, dateOfBirth?: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  updateBalance: (amount: number) => void;
   updateUser: (userData: Partial<User>) => void;
   refreshWalletBalance: () => Promise<void>;
   // New authentication methods
@@ -168,16 +167,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('chanspaw_user');
       // Reset socket after logout
       resetSocket();
-    }
-  };
-
-  const updateBalance = (amount: number) => {
-    // This function is now deprecated in favor of refreshWalletBalance
-    // Kept for backward compatibility with existing components
-    if (user) {
-      const updatedUser = { ...user, balance: user.balance + amount };
-      setUser(updatedUser);
-      localStorage.setItem('chanspaw_user', JSON.stringify(updatedUser));
     }
   };
 
@@ -420,7 +409,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, 
       register, 
       logout, 
-      updateBalance, 
       updateUser, 
       refreshWalletBalance,
       sendEmailVerification,

@@ -103,7 +103,7 @@ class MatchmakingService {
   }
 
   // Create a match between two players
-  async createMatch(player1Id, player2Id, gameType, stakeAmount, matchType) {
+  async createMatch(player1Id, player2Id, gameType, stakeAmount, matchType, externalMatchId = null) {
     // Verify both players have sufficient balance
     const [player1, player2] = await Promise.all([
       prisma.user.findUnique({ where: { id: player1Id } }),
@@ -134,7 +134,8 @@ class MatchmakingService {
         startedAt: new Date(),
         gameState: this.getInitialGameState(gameType, [player1Id, player2Id]),
         escrow: stakeAmount * 2,
-        matchType
+        matchType,
+        ...(externalMatchId ? { externalMatchId } : {})
       }
     });
 

@@ -37,35 +37,42 @@ app.get('/health', (req, res) => {
 });
 
 // Game API endpoints
-app.post('/api/game/initialize', (req, res) => {
+// Replace local match creation with backend call
+app.post('/api/game/initialize', async (req, res) => {
   const { matchId, player1, player2, stake, walletMode } = req.body;
-  
   if (!matchId || !player1 || !player2) {
     return res.status(400).json({ error: 'Missing required parameters' });
   }
-
-  const gameState = {
-    matchId,
-    player1,
-    player2,
-    currentTurn: player1,
-    board: initializeChessBoard(),
-    moveHistory: [],
-    capturedPieces: [],
-    stake,
-    walletMode,
-    status: 'active',
-    createdAt: new Date().toISOString()
-  };
-
-  activeGames.set(matchId, gameState);
-  gameStates.set(matchId, gameState);
-
-  res.json({
-    success: true,
-    gameState,
-    message: 'Chess game initialized'
-  });
+  try {
+    // Call backend to create match and deduct stakes
+    const backendRes = await fetch(process.env.BACKEND_URL + '/api/match/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId, player1, player2, stake, walletMode })
+    });
+    const backendData = await backendRes.json();
+    if (!backendRes.ok) {
+      return res.status(400).json({ error: backendData.error || 'Failed to create match' });
+    }
+    const gameState = {
+      matchId,
+      player1,
+      player2,
+      currentTurn: player1,
+      board: initializeChessBoard(),
+      moveHistory: [],
+      capturedPieces: [],
+      stake,
+      walletMode,
+      status: 'active',
+      createdAt: new Date().toISOString()
+    };
+    activeGames.set(matchId, gameState);
+    gameStates.set(matchId, gameState);
+    res.json({ success: true, gameState, message: 'Chess game initialized' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.post('/api/game/move', (req, res) => {

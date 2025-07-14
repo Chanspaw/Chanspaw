@@ -58,31 +58,15 @@ function GameSection({ activeGame, onPlayGame, onBackToGames }: {
   onBackToGames: () => void;
 }) {
   const { games } = useGame();
-  const { user, updateBalance } = useAuth();
+  const { user, updateBalance, refreshWalletBalance } = useAuth();
 
   const handleGameEnd = (result: { winner: string; stake: number; result: string } | string) => {
     if (user) {
-      // Handle both old and new result formats
-      let gameReward = 0;
-      let hasWinner = false;
-      if (typeof result === 'string') {
-        // Old format - just winner string
-        hasWinner = !!result && result !== 'draw' && result !== '';
-        gameReward = result === 'player' ? 50 : -25;
-      } else {
-        // New format - result object
-        hasWinner = !!result && !!result.winner && result.result !== 'interrupted';
-        gameReward = result.result === 'win' ? result.stake * 0.9 : -result.stake;
-      }
-      if (hasWinner) {
-        updateBalance(gameReward);
-        setTimeout(() => {
-          onBackToGames();
-        }, 2000);
-      } else {
-        // Pa retounen sou Home, kite modal la louvri oswa montre mesaj 'Match interrupted'
-        // (Ou ka mete yon toast oswa modal si ou vle)
-      }
+      // Always fetch new balance from backend after match
+      refreshWalletBalance();
+      setTimeout(() => {
+        onBackToGames();
+      }, 2000);
     }
   };
 

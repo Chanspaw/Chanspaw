@@ -329,11 +329,10 @@ export class GameAPI {
     try {
       const match = this.activeMatches.get(matchId);
       if (!match) return;
-
       // Save game result
       await this.saveGameResult(match, winner, loser);
-      
-      // In a real implementation, handle wallet transfers here
+      // All wallet operations are handled by the backend. Always fetch updated balances after a match.
+      // No local wallet transfer logic here.
       console.log(`Match ${matchId} finalized. Winner: ${winner}, Loser: ${loser}`);
     } catch (error) {
       console.error('Error finalizing match:', error);

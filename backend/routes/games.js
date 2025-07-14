@@ -789,6 +789,21 @@ router.post('/invite/decline', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Invite declined' });
 }));
 
+// Create match and deduct stakes for both players
+router.post('/api/match/create', asyncHandler(async (req, res) => {
+  const { matchId, player1, player2, stake, walletMode } = req.body;
+  if (!matchId || !player1 || !player2 || !stake || !walletMode) {
+    return res.status(400).json({ success: false, error: 'Missing required parameters' });
+  }
+  try {
+    // Use matchmakingService to create match and deduct stakes
+    const match = await matchmakingService.createMatch(player1, player2, 'custom', stake, walletMode, matchId);
+    res.json({ success: true, match });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+}));
+
 // --- Helpers for Game Logic ---
 
 function getInitialGameState(gameType, playerIds) {
