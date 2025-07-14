@@ -60,4 +60,23 @@ async function createAdmin() {
   }
 }
 
-createAdmin(); 
+createAdmin();
+
+// Script to set admin@chanspaw.com as the platform owner
+async function setOwner() {
+  const email = 'admin@chanspaw.com';
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    console.error(`User with email ${email} not found.`);
+    process.exit(1);
+  }
+  if (user.isOwner) {
+    console.log(`User ${email} is already the owner.`);
+    process.exit(0);
+  }
+  await prisma.user.update({ where: { email }, data: { isOwner: true } });
+  console.log(`User ${email} is now set as the platform owner (isOwner=true).`);
+  process.exit(0);
+}
+
+setOwner().catch(e => { console.error(e); process.exit(1); }); 
