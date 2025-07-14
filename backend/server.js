@@ -1889,6 +1889,36 @@ io.on('connection', async (socket) => {
     clearTurnTimer(matchId);
     setTimeout(() => { activeGames.delete(matchId); }, 5000);
   });
+
+  // --- Ephemeral Match Chat ---
+  socket.on('chatMessage', (data) => {
+    const { matchId, senderId, senderName, text } = data;
+    if (!matchId || !senderId || !text) return;
+    // Profanity filter (same as frontend)
+    const profanityWords = [
+      'fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap', 'piss', 'dick', 'cock',
+      'pussy', 'cunt', 'whore', 'slut', 'bastard', 'motherfucker', 'fucker', 'shithead'
+    ];
+    const lowerText = text.toLowerCase();
+    const containsProfanity = profanityWords.some(word => lowerText.includes(word));
+    if (containsProfanity) {
+      socket.emit('chatProfanityWarning', { message: '⚠️ Inappropriate language is not allowed.' });
+      return;
+    }
+    // Word limit (100 words)
+    const wordCount = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    if (wordCount > 100) {
+      socket.emit('chatWordLimitWarning', { message: 'Message too long. Maximum 100 words allowed.' });
+      return;
+    }
+    // Relay to both players in the match room
+    io.to(matchId).emit('chatMessage', {
+      matchId,
+      senderId,
+      senderName,
+      text
+    });
+  });
 });
 
 // Turn timer functions
