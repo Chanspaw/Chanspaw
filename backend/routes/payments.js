@@ -516,7 +516,9 @@ router.post('/payout', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: 'winnerId, stake, and walletMode are required' });
   }
   try {
-    await payoutWinnings(winnerId, stake, walletMode);
+    await prisma.$transaction(async (tx) => {
+      await payoutWinnings(tx, winnerId, stake, walletMode);
+    });
     res.json({ success: true, message: 'Payout processed successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

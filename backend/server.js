@@ -1087,7 +1087,9 @@ io.on('connection', async (socket) => {
           // Handle payout if there's a winner
           if (matchWinner) {
             try {
-              await payoutWinnings(matchWinner, gameState.stake, gameState.walletMode);
+              await prisma.$transaction(async (tx) => {
+                await payoutWinnings(tx, matchWinner, gameState.stake, gameState.walletMode);
+              });
             } catch (err) {
               console.error(`[PAYOUT ERROR] Could not pay out winnings to ${matchWinner}:`, err);
             }
@@ -1120,7 +1122,9 @@ io.on('connection', async (socket) => {
           // Handle payout if there's a winner
           if (matchWinner) {
             try {
-              await payoutWinnings(matchWinner, gameState.stake, gameState.walletMode);
+              await prisma.$transaction(async (tx) => {
+                await payoutWinnings(tx, matchWinner, gameState.stake, gameState.walletMode);
+              });
             } catch (err) {
               console.error(`[PAYOUT ERROR] Could not pay out winnings to ${matchWinner}:`, err);
             }
@@ -1259,7 +1263,9 @@ io.on('connection', async (socket) => {
         // Game ended - handle payout and emit match ended
         if (winnerId) {
           try {
-            await payoutWinnings(winnerId, gameState.stake, gameState.walletMode);
+            await prisma.$transaction(async (tx) => {
+              await payoutWinnings(tx, winnerId, gameState.stake, gameState.walletMode);
+            });
           } catch (err) {
             console.error(`[PAYOUT ERROR] Could not pay out winnings to ${winnerId}:`, err);
           }
@@ -1497,7 +1503,9 @@ io.on('connection', async (socket) => {
         
         if (winnerId) {
           try {
-            await payoutWinnings(winnerId, gameState.stake, gameState.walletMode);
+            await prisma.$transaction(async (tx) => {
+              await payoutWinnings(tx, winnerId, gameState.stake, gameState.walletMode);
+            });
           } catch (err) {
             console.error(`[PAYOUT ERROR] Could not pay out winnings to ${winnerId}:`, err);
           }
@@ -1792,7 +1800,9 @@ io.on('connection', async (socket) => {
       });
     } else {
       try {
-        await payoutWinnings(winner, gameState.stake, gameState.walletMode);
+        await prisma.$transaction(async (tx) => {
+          await payoutWinnings(tx, winner, gameState.stake, gameState.walletMode);
+        });
       } catch (err) {
         console.error(`[GAME_END] payoutWinnings failed for match ${matchId}:`, err.message);
         return;
@@ -1994,7 +2004,15 @@ function startTurnTimer(matchId, playerId) {
       if (opponentSocket) opponentSocket.emit('matchEnded', matchEndedPayload);
       
       // Handle payout
-      payoutWinnings(matchId, opponentId, gameState.walletMode, gameState.stake);
+      (async () => {
+        try {
+          await prisma.$transaction(async (tx) => {
+            await payoutWinnings(tx, opponentId, gameState.walletMode, gameState.stake);
+          });
+        } catch (err) {
+          console.error(`[PAYOUT ERROR] Could not pay out winnings to ${opponentId}:`, err);
+        }
+      })();
       
     } else if (gameState.gameId === 'chess') {
       // For chess, end the game and declare the opponent as winner if player times out
@@ -2010,7 +2028,15 @@ function startTurnTimer(matchId, playerId) {
       if (playerSocket) playerSocket.emit('matchEnded', matchEndedPayload);
       if (opponentSocket) opponentSocket.emit('matchEnded', matchEndedPayload);
       // Optionally, payout winner
-      payoutWinnings(matchId, opponentId, gameState.walletMode, gameState.stake);
+      (async () => {
+        try {
+          await prisma.$transaction(async (tx) => {
+            await payoutWinnings(tx, opponentId, gameState.walletMode, gameState.stake);
+          });
+        } catch (err) {
+          console.error(`[PAYOUT ERROR] Could not pay out winnings to ${opponentId}:`, err);
+        }
+      })();
       setTimeout(() => { activeGames.delete(matchId); }, 60000);
       return;
     } else {
