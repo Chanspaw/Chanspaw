@@ -524,33 +524,13 @@ router.post('/match/:matchId/move', (req, res, next) => req.app.get('gameActionL
     // If match ended, payout winner and fee
     if (winnerId !== null && winnerId !== undefined) {
       const matchRecord = await tx.match.findUnique({ where: { id: matchId } });
-      // Use payoutWinnings for all wallet types
-      await payoutWinnings(winnerId, matchRecord.betAmount, matchRecord.matchType);
+      // Use payoutWinnings for all wallet types, pass tx
+      await payoutWinnings(tx, winnerId, matchRecord.betAmount, matchRecord.matchType);
       // Log audit
       await tx.auditLog.create({ data: { userId: winnerId, action: 'PAYOUT_WIN', details: JSON.stringify({ matchId, winnerAmount: Math.floor(matchRecord.betAmount * 2 * 0.9), platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), matchType: matchRecord.matchType, platformFeePercent: 10 }) } });
-      // Only create transaction records for real money
+      // Only create transaction records for real money (already handled in payoutWinnings)
       if (matchRecord.matchType === 'real') {
         await tx.auditLog.create({ data: { userId: null, action: 'PLATFORM_FEE', details: JSON.stringify({ matchId, platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), platformFeePercent: 10 }) } });
-        await tx.transaction.create({ 
-          data: { 
-            userId: winnerId, 
-            type: 'GAME_WIN', 
-            amount: Math.floor(matchRecord.betAmount * 2 * 0.9), 
-            status: 'COMPLETED', 
-            description: `Win for match ${matchId}`, 
-            metadata: JSON.stringify({ matchId, matchType: 'real' }) 
-          } 
-        });
-        await tx.transaction.create({ 
-          data: { 
-            userId: null, 
-            type: 'PLATFORM_FEE', 
-            amount: Math.ceil(matchRecord.betAmount * 2 * 0.1), 
-            status: 'COMPLETED', 
-            description: `Platform fee for match ${matchId}`, 
-            metadata: JSON.stringify({ matchId, matchType: 'real' }) 
-          } 
-        });
       }
       
       // Suspicious activity: fast win (under 10 seconds) - only for real money
