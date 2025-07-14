@@ -335,20 +335,13 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// Add a friendly root route
-app.get('/', (req, res) => {
-  res.send('Chanspaw backend is running! Use /api/* for API endpoints.');
-});
+// Serve static files from the frontend build
+const path = require('path');
+app.use(express.static(path.join(__dirname, '../dist')));
 
-// Handle favicon.ico requests to prevent 404 errors
-app.get('/favicon.ico', (req, res) => res.status(204).end());
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    error: 'Route not found' 
-  });
+// For any route not handled by the API, serve index.html (for React Router)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 // Error handling middleware
