@@ -36,10 +36,6 @@ if (!fs.existsSync('.env')) {
 console.log('📦 Installing frontend dependencies...');
 runCommand('npm install');
 
-// Install redis for keep-alive script
-console.log('📦 Installing redis package for keep-redis-alive.js...');
-runCommand('npm install redis');
-
 // Install dependencies for backend
 console.log('📦 Installing backend dependencies...');
 runCommand('npm install', './backend');
