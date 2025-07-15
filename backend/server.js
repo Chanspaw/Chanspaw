@@ -71,6 +71,7 @@ const prisma = new PrismaClient();
 
 const matchmakingService = require('./services/matchmakingService');
 const { payoutWinnings } = require('./services/walletService');
+const { escrowBets, payoutMatch } = require('./services/payoutService');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -1099,8 +1100,15 @@ io.on('connection', async (socket) => {
           // Handle payout if there's a winner
           if (matchWinner) {
             try {
-              await prisma.$transaction(async (tx) => {
-                await payoutWinnings(tx, matchWinner, gameState.stake, gameState.walletMode);
+              await payoutMatch({
+                matchId,
+                gameType: gameState.gameId,
+                player1Id: gameState.player1,
+                player2Id: gameState.player2,
+                winnerId: matchWinner,
+                betAmount: gameState.stake,
+                currency: gameState.walletMode,
+                isDraw: false
               });
             } catch (err) {
               console.error(`[PAYOUT ERROR] Could not pay out winnings to ${matchWinner}:`, err);
@@ -1134,8 +1142,15 @@ io.on('connection', async (socket) => {
           // Handle payout if there's a winner
           if (matchWinner) {
             try {
-              await prisma.$transaction(async (tx) => {
-                await payoutWinnings(tx, matchWinner, gameState.stake, gameState.walletMode);
+              await payoutMatch({
+                matchId,
+                gameType: gameState.gameId,
+                player1Id: gameState.player1,
+                player2Id: gameState.player2,
+                winnerId: matchWinner,
+                betAmount: gameState.stake,
+                currency: gameState.walletMode,
+                isDraw: false
               });
             } catch (err) {
               console.error(`[PAYOUT ERROR] Could not pay out winnings to ${matchWinner}:`, err);
@@ -1275,8 +1290,15 @@ io.on('connection', async (socket) => {
         // Game ended - handle payout and emit match ended
         if (winnerId) {
           try {
-            await prisma.$transaction(async (tx) => {
-              await payoutWinnings(tx, winnerId, gameState.stake, gameState.walletMode);
+            await payoutMatch({
+              matchId,
+              gameType: gameState.gameId,
+              player1Id: gameState.player1,
+              player2Id: gameState.player2,
+              winnerId,
+              betAmount: gameState.stake,
+              currency: gameState.walletMode,
+              isDraw: false
             });
           } catch (err) {
             console.error(`[PAYOUT ERROR] Could not pay out winnings to ${winnerId}:`, err);
@@ -1515,8 +1537,15 @@ io.on('connection', async (socket) => {
         
         if (winnerId) {
           try {
-            await prisma.$transaction(async (tx) => {
-              await payoutWinnings(tx, winnerId, gameState.stake, gameState.walletMode);
+            await payoutMatch({
+              matchId,
+              gameType: gameState.gameId,
+              player1Id: gameState.player1,
+              player2Id: gameState.player2,
+              winnerId,
+              betAmount: gameState.stake,
+              currency: gameState.walletMode,
+              isDraw: false
             });
           } catch (err) {
             console.error(`[PAYOUT ERROR] Could not pay out winnings to ${winnerId}:`, err);
@@ -1756,24 +1785,17 @@ io.on('connection', async (socket) => {
         console.log(`[CHESS] Game ended: checkmate=${isCheckmate}, stalemate=${isStalemate}, draw=${isDraw}`);
         const winner = isCheckmate ? (chess.turn() === 'w' ? 'black' : 'white') : 'draw';
         const winnerId = winner === 'draw' ? null : (winner === 'white' ? players[0] : players[1]);
-        
-        // Emit match ended to both players
-        const matchEndedPayload = {
+        const isDrawGame = !winnerId;
+        await payoutMatch({
           matchId,
-          winner: winnerId,
-          reason: isCheckmate ? 'checkmate' : isStalemate ? 'stalemate' : drawReason || 'draw'
-        };
-        
-        if (playerSocket) playerSocket.emit('matchEnded', matchEndedPayload);
-        if (opponentSocket) opponentSocket.emit('matchEnded', matchEndedPayload);
-        
-        // Handle game end logic
-        if (winnerId) {
-          console.log(`[CHESS] Winner: ${winnerId}`);
-          // Update game state
-          gameState.gameEnded = true;
-          gameState.winner = winnerId;
-        }
+          gameType: 'chess',
+          player1Id: players[0],
+          player2Id: players[1],
+          winnerId,
+          betAmount: gameState.stake,
+          currency: gameState.walletMode,
+          isDraw: isDrawGame
+        });
       }
     }
   });
@@ -1812,11 +1834,18 @@ io.on('connection', async (socket) => {
       });
     } else {
       try {
-        await prisma.$transaction(async (tx) => {
-          await payoutWinnings(tx, winner, gameState.stake, gameState.walletMode);
+        await payoutMatch({
+          matchId,
+          gameType,
+          player1Id: gameState.player1,
+          player2Id: gameState.player2,
+          winnerId: winner,
+          betAmount: gameState.stake,
+          currency: gameState.walletMode,
+          isDraw: false
         });
       } catch (err) {
-        console.error(`[GAME_END] payoutWinnings failed for match ${matchId}:`, err.message);
+        console.error(`[GAME_END] payoutMatch failed for match ${matchId}:`, err.message);
         return;
       }
     }
