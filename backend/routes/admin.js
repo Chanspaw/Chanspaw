@@ -1636,18 +1636,24 @@ router.post('/invites/:id/refund', requireAdmin, asyncHandler(async (req, res) =
 
 // --- Platform Revenue List ---
 router.get('/platform-revenue', asyncHandler(async (req, res) => {
-  const { currency, gameType, startDate, endDate } = req.query;
+  const { currency, gameType, startDate, endDate, page = 1, limit = 100 } = req.query;
   const where = {};
   if (currency) where.currency = currency;
   if (gameType) where.gameType = gameType;
   if (startDate || endDate) where.timestamp = {};
   if (startDate) where.timestamp.gte = new Date(startDate);
   if (endDate) where.timestamp.lte = new Date(endDate);
-  const revenue = await prisma.platformRevenue.findMany({
-    where,
-    orderBy: { timestamp: 'desc' }
-  });
-  res.json({ success: true, data: revenue });
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const [revenue, total] = await Promise.all([
+    prisma.platformRevenue.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      skip,
+      take: parseInt(limit)
+    }),
+    prisma.platformRevenue.count({ where })
+  ]);
+  res.json({ success: true, data: revenue, pagination: { page: parseInt(page), limit: parseInt(limit), total, pages: Math.ceil(total / parseInt(limit)) } });
 }));
 // --- Platform Revenue CSV Export ---
 router.get('/platform-revenue/export', asyncHandler(async (req, res) => {
@@ -1658,7 +1664,6 @@ router.get('/platform-revenue/export', asyncHandler(async (req, res) => {
   res.attachment('platform_revenue.csv');
   res.send(csv);
 }));
-
 // --- Owner Withdrawals ---
 router.get('/owner-withdrawals', asyncHandler(async (req, res) => {
   const { status, startDate, endDate, page, limit } = req.query;

@@ -2,46 +2,35 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 class OwnerProfitService {
-  // Calculate platform profits from game results
+  // Calculate platform profits from PlatformRevenue
   async calculatePlatformProfits(startDate, endDate) {
     try {
-      const gameResults = await prisma.gameResult.findMany({
+      const revenue = await prisma.platformRevenue.findMany({
         where: {
-          createdAt: {
+          timestamp: {
             gte: startDate,
             lte: endDate
           },
-          matchType: 'real' // Only real money games
+          currency: 'real'
         },
         select: {
           gameType: true,
-          betAmount: true,
-          winAmount: true,
-          createdAt: true
+          platformCut: true,
+          amount: true,
+          timestamp: true
         }
       });
-
       const profitsByGame = {};
-      
-      gameResults.forEach(result => {
-        if (!profitsByGame[result.gameType]) {
-          profitsByGame[result.gameType] = {
-            totalBets: 0,
-            totalWins: 0,
-            profit: 0
+      revenue.forEach(r => {
+        if (!profitsByGame[r.gameType]) {
+          profitsByGame[r.gameType] = {
+            totalRevenue: 0,
+            totalPlatformCut: 0
           };
         }
-        
-        profitsByGame[result.gameType].totalBets += result.betAmount;
-        profitsByGame[result.gameType].totalWins += result.winAmount;
+        profitsByGame[r.gameType].totalRevenue += r.amount;
+        profitsByGame[r.gameType].totalPlatformCut += r.platformCut;
       });
-
-      // Calculate profits (house edge)
-      Object.keys(profitsByGame).forEach(gameType => {
-        const game = profitsByGame[gameType];
-        game.profit = game.totalBets - game.totalWins;
-      });
-
       return profitsByGame;
     } catch (error) {
       console.error('Error calculating platform profits:', error);
@@ -49,52 +38,22 @@ class OwnerProfitService {
     }
   }
 
-  // Record platform profits
-  async recordPlatformProfit(profitData) {
-    try {
-      const profit = await prisma.platformProfit.create({
-        data: {
-          gameType: profitData.gameType,
-          totalBets: profitData.totalBets,
-          totalWins: profitData.totalWins,
-          houseEdge: profitData.houseEdge || 0,
-          profit: profitData.profit,
-          source: profitData.source || 'game_commission',
-          metadata: profitData.metadata ? JSON.stringify(profitData.metadata) : null
-        }
-      });
-
-      return profit;
-    } catch (error) {
-      console.error('Error recording platform profit:', error);
-      throw error;
-    }
-  }
-
-  // Get total available profits
+  // Get total available profits (sum of all platformCut in PlatformRevenue minus withdrawals)
   async getTotalAvailableProfits() {
     try {
-      const totalProfits = await prisma.platformProfit.aggregate({
-        _sum: {
-          profit: true
-        }
+      const totalProfits = await prisma.platformRevenue.aggregate({
+        _sum: { platformCut: true },
+        where: { currency: 'real' }
       });
-
       const totalWithdrawals = await prisma.ownerWithdrawal.aggregate({
         where: {
-          status: {
-            in: ['COMPLETED', 'PROCESSING']
-          }
+          status: { in: ['COMPLETED', 'PROCESSING'] }
         },
-        _sum: {
-          amount: true
-        }
+        _sum: { amount: true }
       });
-
-      const availableProfits = (totalProfits._sum.profit || 0) - (totalWithdrawals._sum.amount || 0);
-      
+      const availableProfits = (totalProfits._sum.platformCut || 0) - (totalWithdrawals._sum.amount || 0);
       return {
-        totalProfits: totalProfits._sum.profit || 0,
+        totalProfits: totalProfits._sum.platformCut || 0,
         totalWithdrawn: totalWithdrawals._sum.amount || 0,
         availableProfits: Math.max(0, availableProfits)
       };
@@ -108,18 +67,13 @@ class OwnerProfitService {
   async createOwnerWithdrawal(withdrawalData) {
     try {
       const { amount, method, accountDetails, notes } = withdrawalData;
-
-      // Check if amount is available
       const availableProfits = await this.getTotalAvailableProfits();
-      
       if (amount > availableProfits.availableProfits) {
         throw new Error('Insufficient available profits for withdrawal');
       }
-
       if (amount <= 0) {
         throw new Error('Withdrawal amount must be greater than 0');
       }
-
       const withdrawal = await prisma.ownerWithdrawal.create({
         data: {
           amount,
@@ -129,7 +83,6 @@ class OwnerProfitService {
           status: 'PENDING'
         }
       });
-
       return withdrawal;
     } catch (error) {
       console.error('Error creating owner withdrawal:', error);
@@ -141,21 +94,14 @@ class OwnerProfitService {
   async getOwnerWithdrawals(filters = {}) {
     try {
       const { status, startDate, endDate, page = 1, limit = 20 } = filters;
-      
       const where = {};
-      
-      if (status) {
-        where.status = status;
-      }
-      
+      if (status) where.status = status;
       if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) where.createdAt.gte = new Date(startDate);
         if (endDate) where.createdAt.lte = new Date(endDate);
       }
-
       const skip = (page - 1) * limit;
-
       const [withdrawals, total] = await Promise.all([
         prisma.ownerWithdrawal.findMany({
           where,
@@ -164,17 +110,12 @@ class OwnerProfitService {
           take: limit,
           include: {
             processedByUser: {
-              select: {
-                id: true,
-                username: true,
-                email: true
-              }
+              select: { id: true, username: true, email: true }
             }
           }
         }),
         prisma.ownerWithdrawal.count({ where })
       ]);
-
       return {
         withdrawals,
         pagination: {
@@ -193,30 +134,15 @@ class OwnerProfitService {
   // Process owner withdrawal (approve/reject)
   async processOwnerWithdrawal(withdrawalId, action, adminId, reason = null) {
     try {
-      const withdrawal = await prisma.ownerWithdrawal.findUnique({
-        where: { id: withdrawalId }
-      });
-
-      if (!withdrawal) {
-        throw new Error('Withdrawal not found');
-      }
-
-      if (withdrawal.status !== 'PENDING') {
-        throw new Error('Withdrawal is not in pending status');
-      }
-
+      const withdrawal = await prisma.ownerWithdrawal.findUnique({ where: { id: withdrawalId } });
+      if (!withdrawal) throw new Error('Withdrawal not found');
+      if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal is not in pending status');
       let newStatus;
       switch (action) {
-        case 'approve':
-          newStatus = 'APPROVED';
-          break;
-        case 'reject':
-          newStatus = 'REJECTED';
-          break;
-        default:
-          throw new Error('Invalid action');
+        case 'approve': newStatus = 'APPROVED'; break;
+        case 'reject': newStatus = 'REJECTED'; break;
+        default: throw new Error('Invalid action');
       }
-
       const updatedWithdrawal = await prisma.ownerWithdrawal.update({
         where: { id: withdrawalId },
         data: {
@@ -226,7 +152,6 @@ class OwnerProfitService {
           reason: action === 'reject' ? reason : null
         }
       });
-
       return updatedWithdrawal;
     } catch (error) {
       console.error('Error processing owner withdrawal:', error);
@@ -234,102 +159,36 @@ class OwnerProfitService {
     }
   }
 
-  // Get profit statistics
-  async getProfitStatistics(timeRange = '30d') {
+  // List all platform profit history from PlatformRevenue
+  async getPlatformProfitHistory({ currency = 'real', startDate, endDate, page = 1, limit = 50 } = {}) {
     try {
-      const now = new Date();
-      let startDate;
-      
-      switch (timeRange) {
-        case '7d':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case '30d':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          break;
-        case '90d':
-          startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          break;
-        case 'all':
-          startDate = new Date(0);
-          break;
-        default:
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const where = { currency };
+      if (startDate || endDate) {
+        where.timestamp = {};
+        if (startDate) where.timestamp.gte = new Date(startDate);
+        if (endDate) where.timestamp.lte = new Date(endDate);
       }
-
-      const [profits, withdrawals] = await Promise.all([
-        prisma.platformProfit.findMany({
-          where: {
-            createdAt: {
-              gte: startDate
-            }
-          },
-          orderBy: { createdAt: 'desc' }
+      const skip = (page - 1) * limit;
+      const [history, total] = await Promise.all([
+        prisma.platformRevenue.findMany({
+          where,
+          orderBy: { timestamp: 'desc' },
+          skip,
+          take: limit
         }),
-        prisma.ownerWithdrawal.findMany({
-          where: {
-            createdAt: {
-              gte: startDate
-            }
-          },
-          orderBy: { createdAt: 'desc' }
-        })
+        prisma.platformRevenue.count({ where })
       ]);
-
-      const totalProfits = profits.reduce((sum, p) => sum + p.profit, 0);
-      const totalWithdrawals = withdrawals
-        .filter(w => w.status === 'COMPLETED')
-        .reduce((sum, w) => sum + w.amount, 0);
-
-      const profitByGame = {};
-      profits.forEach(profit => {
-        if (!profitByGame[profit.gameType]) {
-          profitByGame[profit.gameType] = 0;
-        }
-        profitByGame[profit.gameType] += profit.profit;
-      });
-
       return {
-        totalProfits,
-        totalWithdrawals,
-        netProfit: totalProfits - totalWithdrawals,
-        profitByGame,
-        profitHistory: profits,
-        withdrawalHistory: withdrawals
+        history,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit)
+        }
       };
     } catch (error) {
-      console.error('Error getting profit statistics:', error);
-      throw error;
-    }
-  }
-
-  // Mark withdrawal as completed
-  async completeWithdrawal(withdrawalId, adminId) {
-    try {
-      const withdrawal = await prisma.ownerWithdrawal.findUnique({
-        where: { id: withdrawalId }
-      });
-
-      if (!withdrawal) {
-        throw new Error('Withdrawal not found');
-      }
-
-      if (withdrawal.status !== 'APPROVED') {
-        throw new Error('Withdrawal must be approved before completion');
-      }
-
-      const updatedWithdrawal = await prisma.ownerWithdrawal.update({
-        where: { id: withdrawalId },
-        data: {
-          status: 'COMPLETED',
-          processedBy: adminId,
-          processedAt: new Date()
-        }
-      });
-
-      return updatedWithdrawal;
-    } catch (error) {
-      console.error('Error completing withdrawal:', error);
+      console.error('Error getting platform profit history:', error);
       throw error;
     }
   }
