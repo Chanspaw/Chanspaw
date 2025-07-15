@@ -7,6 +7,7 @@ const securityService = require('../services/securityService');
 const bulkUserService = require('../services/bulkUserService');
 const manualTransactionService = require('../services/manualTransactionService');
 const systemHealthService = require('../services/systemHealthService');
+const ownerProfitService = require('../services/ownerProfitService');
 const { Parser } = require('json2csv');
 
 const router = express.Router();
@@ -1656,6 +1657,29 @@ router.get('/platform-revenue/export', asyncHandler(async (req, res) => {
   res.header('Content-Type', 'text/csv');
   res.attachment('platform_revenue.csv');
   res.send(csv);
+}));
+
+// --- Owner Withdrawals ---
+router.get('/owner-withdrawals', asyncHandler(async (req, res) => {
+  const { status, startDate, endDate, page, limit } = req.query;
+  const result = await ownerProfitService.getOwnerWithdrawals({ status, startDate, endDate, page, limit });
+  res.json({ success: true, data: result });
+}));
+router.post('/owner-withdrawals', asyncHandler(async (req, res) => {
+  const { amount, method, accountDetails, notes } = req.body;
+  const withdrawal = await ownerProfitService.createOwnerWithdrawal({ amount, method, accountDetails, notes });
+  res.json({ success: true, data: withdrawal });
+}));
+router.put('/owner-withdrawals/:id/process', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { action, reason } = req.body;
+  const withdrawal = await ownerProfitService.processOwnerWithdrawal(id, action, req.user.id, reason);
+  res.json({ success: true, data: withdrawal });
+}));
+router.put('/owner-withdrawals/:id/complete', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const withdrawal = await ownerProfitService.completeWithdrawal(id, req.user.id);
+  res.json({ success: true, data: withdrawal });
 }));
 
 module.exports = router; 
