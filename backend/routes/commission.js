@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const asyncHandler = require('../middleware/asyncHandler');
+const { asyncHandler } = require('../middleware/errorHandler');
 
 // In-memory or DB-backed configs (for demo, use in-memory)
 const defaultConfigs = {
