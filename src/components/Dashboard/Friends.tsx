@@ -39,6 +39,7 @@ const Friends: React.FC = () => {
   const [inviteCurrency, setInviteCurrency] = useState<'real' | 'virtual'>('real');
   const [inviteBet, setInviteBet] = useState<number>(10);
   const [pendingInvites, setPendingInvites] = useState<{ [userId: string]: { status: 'pending' | 'accepted' | 'declined' | 'failed', game: string, bet: number, currency: string, error?: string } }>({});
+  const [inviteUserBalances, setInviteUserBalances] = useState<{ real_balance: number; virtual_balance: number }>({ real_balance: 0, virtual_balance: 0 });
   const { t } = useTranslation();
 
   // Load data on component mount
@@ -332,8 +333,27 @@ const Friends: React.FC = () => {
     }
   };
 
-  const handleInviteToPlay = (friend: OnlineFriend) => {
+  const handleInviteToPlay = async (friend: OnlineFriend) => {
     setInviteTarget(friend);
+    // Fetch latest wallet balances before opening modal
+    try {
+      const response = await fetch(`${API_URL}/api/wallet/balance`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setInviteUserBalances({
+          real_balance: data.data?.real_balance || 0,
+          virtual_balance: data.data?.virtual_balance || 0
+        });
+      } else {
+        setInviteUserBalances({ real_balance: 0, virtual_balance: 0 });
+      }
+    } catch {
+      setInviteUserBalances({ real_balance: 0, virtual_balance: 0 });
+    }
     setInviteModalOpen(true);
   };
   const handleInviteModalConfirm = async (betAmount: number) => {
@@ -491,7 +511,7 @@ const Friends: React.FC = () => {
           gameType={inviteGame}
           userId={user?.id || ''}
           username={user?.username || ''}
-          userBalances={{ real_balance: user?.real_balance || 0, virtual_balance: user?.virtual_balance || 0 }}
+          userBalances={inviteUserBalances}
         />
       )}
       
