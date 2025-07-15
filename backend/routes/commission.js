@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const asyncHandler = require('../middleware/asyncHandler');
 
 // In-memory or DB-backed configs (for demo, use in-memory)
 const defaultConfigs = {
@@ -46,5 +47,19 @@ router.put('/config/:gameId', (req, res) => {
   if (maxBet !== undefined) defaultConfigs[gameId].maxBet = maxBet;
   res.json(defaultConfigs[gameId]);
 });
+
+router.get('/config/chess', asyncHandler(async (req, res) => {
+  // Example config, adjust as needed
+  res.json({
+    success: true,
+    data: {
+      minBet: 1,
+      maxBet: 1000,
+      commissionPercent: 10,
+      payoutPercent: 90,
+      currency: ['real', 'virtual']
+    }
+  });
+}));
 
 module.exports = router; 
