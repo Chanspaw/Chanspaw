@@ -36,6 +36,10 @@ if (!fs.existsSync('.env')) {
 console.log('📦 Installing frontend dependencies...');
 runCommand('npm install');
 
+// Install redis for keep-alive script
+console.log('📦 Installing redis package for keep-redis-alive.js...');
+runCommand('npm install redis');
+
 // Install dependencies for backend
 console.log('📦 Installing backend dependencies...');
 runCommand('npm install', './backend');
@@ -183,6 +187,12 @@ const readme = `# Chanspaw Platform - Production
 4. Start the application:
    \`\`\`bash
    npm start
+   \`\`\`
+
+5. (Recommended) Start Redis keep-alive script:
+   \`\`\`bash
+   pm2 start keep-redis-alive.js --name keep-redis-alive
+   pm2 save
    \`\`\`
 
 ## URLs
