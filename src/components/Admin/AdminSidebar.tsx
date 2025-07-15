@@ -83,39 +83,6 @@ export function AdminSidebar({ activeSection, onSectionChange, onBackToMain, isO
           <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Gestion Financière
           </h3>
-          <button
-            onClick={() => onSectionChange('admin-payments')}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSection === 'admin-payments'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-            }`}
-          >
-            <DollarSign className="mr-3 h-5 w-5" />
-            Paiements & Rapports
-          </button>
-          <button
-            onClick={() => onSectionChange('admin-commission')}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSection === 'admin-commission'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-            }`}
-          >
-            <PieChart className="mr-3 h-5 w-5" />
-            Système de Commission
-          </button>
-          <button
-            onClick={() => onSectionChange('admin-analytics-reports')}
-            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeSection === 'admin-analytics-reports'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-            }`}
-          >
-            <TrendingUp className="mr-3 h-5 w-5" />
-            Rapports & Analytics
-          </button>
         </div>
       </nav>
     </div>
