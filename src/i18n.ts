@@ -29,6 +29,7 @@ const resources = {
         invitedYou: '{{user}} invited you to play {{game}}!',
         enterUserId: 'Enter User ID',
         online: 'Online',
+        offline: 'Offline',
         noPendingRequests: 'Pending Requests',
         allCaughtUp: '',
         noFriendsYet: 'No Friends Yet',
@@ -90,7 +91,8 @@ const resources = {
         invite: 'Inviter',
         invitedYou: '{{user}} vous a invité à jouer à {{game}} !',
         noFriendsYet: '',
-        startBySearching: ''
+        startBySearching: '',
+        offline: ''
       },
       admin: {
         invites: 'Invitations',
@@ -146,7 +148,8 @@ const resources = {
         invite: 'Envite',
         invitedYou: '{{user}} envite ou jwe {{game}}!',
         noFriendsYet: '',
-        startBySearching: ''
+        startBySearching: '',
+        offline: ''
       },
       admin: {
         invites: 'Envitasyon',
