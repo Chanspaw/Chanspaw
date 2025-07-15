@@ -22,6 +22,9 @@ const resources = {
         success: 'Invite sent!'
       },
       friends: {
+        yourFriends: 'Your Friends',
+        friendRequests: 'Friend Requests',
+        findFriends: 'Find Friends',
         invite: 'Invite',
         invitedYou: '{{user}} invited you to play {{game}}!'
       },
