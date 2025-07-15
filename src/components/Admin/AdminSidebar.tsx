@@ -78,12 +78,6 @@ export function AdminSidebar({ activeSection, onSectionChange, onBackToMain, isO
             </button>
           ))}
         </div>
-
-        <div className="space-y-2">
-          <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            Gestion Financière
-          </h3>
-        </div>
       </nav>
     </div>
   );
