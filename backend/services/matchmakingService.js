@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { deductStake } = require('./walletService');
+const { escrowBets, payoutMatch } = require('./payoutService');
+// All old stake deduction and escrow logic removed. New payout system will be implemented here.
 
 class MatchmakingService {
   constructor() {
@@ -118,10 +119,10 @@ class MatchmakingService {
     }
 
     // Deduct stake from both players using walletService
-    await Promise.all([
-      deductStake(player1Id, stakeAmount, matchType),
-      deductStake(player2Id, stakeAmount, matchType)
-    ]);
+    // All old stake deduction and escrow logic removed. New payout system will be implemented here.
+
+    // In createMatch, after verifying balances, call escrowBets
+    await escrowBets({ player1Id, player2Id, betAmount: stakeAmount, currency: matchType, matchId: null, gameType });
 
     // Create match record
     const match = await prisma.match.create({
@@ -133,7 +134,7 @@ class MatchmakingService {
         status: 'active',
         startedAt: new Date(),
         gameState: this.getInitialGameState(gameType, [player1Id, player2Id]),
-        escrow: stakeAmount * 2,
+        // escrow: stakeAmount * 2, // Removed escrow
         matchType,
         ...(externalMatchId ? { externalMatchId } : {})
       }

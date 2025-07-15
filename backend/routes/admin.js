@@ -7,6 +7,7 @@ const securityService = require('../services/securityService');
 const bulkUserService = require('../services/bulkUserService');
 const manualTransactionService = require('../services/manualTransactionService');
 const systemHealthService = require('../services/systemHealthService');
+const { Parser } = require('json2csv');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -1630,6 +1631,31 @@ router.post('/invites/:id/refund', requireAdmin, asyncHandler(async (req, res) =
   await prisma.match.update({ where: { id }, data: { status: 'refunded', completedAt: new Date() } });
   await prisma.auditLog.create({ data: { adminId: req.user.id, action: 'INVITE_MATCH_REFUNDED', resourceType: 'Match', resourceId: id, details: JSON.stringify({ matchId: id, reason: 'Admin refunded' }) } });
   res.json({ success: true, message: 'Match refunded' });
+}));
+
+// --- Platform Revenue List ---
+router.get('/platform-revenue', asyncHandler(async (req, res) => {
+  const { currency, gameType, startDate, endDate } = req.query;
+  const where = {};
+  if (currency) where.currency = currency;
+  if (gameType) where.gameType = gameType;
+  if (startDate || endDate) where.timestamp = {};
+  if (startDate) where.timestamp.gte = new Date(startDate);
+  if (endDate) where.timestamp.lte = new Date(endDate);
+  const revenue = await prisma.platformRevenue.findMany({
+    where,
+    orderBy: { timestamp: 'desc' }
+  });
+  res.json({ success: true, data: revenue });
+}));
+// --- Platform Revenue CSV Export ---
+router.get('/platform-revenue/export', asyncHandler(async (req, res) => {
+  const revenue = await prisma.platformRevenue.findMany({ orderBy: { timestamp: 'desc' } });
+  const parser = new Parser();
+  const csv = parser.parse(revenue);
+  res.header('Content-Type', 'text/csv');
+  res.attachment('platform_revenue.csv');
+  res.send(csv);
 }));
 
 module.exports = router; 

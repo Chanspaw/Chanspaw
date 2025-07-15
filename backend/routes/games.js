@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/errorHandler');
 const matchmakingService = require('../services/matchmakingService');
 const requireAdmin = require('../middleware/auth').requireAdmin;
-const { payoutWinnings } = require('../services/walletService');
+const { payoutWinnings, escrowBets, payoutMatch } = require('../services/payoutService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -726,7 +726,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Invite sent' });
 }));
 
-// Accept 1v1 invite (production-ready)
+// Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
   const { fromUserId, gameType, matchType = 'real' } = req.body;
   const toUserId = req.user.id;
@@ -735,9 +735,14 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
   const invite = await redis.get(inviteKey);
   if (!invite) return res.status(404).json({ success: false, error: 'Invite not found or expired' });
   const { betAmount } = JSON.parse(invite);
-  // Remove invite
   await redis.del(inviteKey);
   inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'accepted' });
+  // Escrow bets atomically
+  try {
+    await escrowBets({ player1Id: fromUserId, player2Id: toUserId, betAmount, currency: matchType, matchId: null, gameType });
+  } catch (err) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
   // Check both balances
   const [p1, p2] = await Promise.all([
     prisma.user.findUnique({ where: { id: fromUserId } }),
@@ -1516,6 +1521,11 @@ function simulateGame(gameType, gameData) {
         details: { message: 'Unknown game type' }
       };
   }
+}
+
+// --- On match end (win/loss/draw/disconnect/timeout) ---
+async function handleMatchEnd({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, matchType, isDraw }) {
+  await payoutMatch({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, currency: matchType, isDraw });
 }
 
 module.exports = router; 

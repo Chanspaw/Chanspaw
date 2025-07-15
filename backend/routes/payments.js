@@ -509,20 +509,7 @@ router.post('/virtual-reset', asyncHandler(async (req, res) => {
 // Virtual reset endpoint has been removed to prevent automatic money addition
 // Users should only get virtual coins through admin actions or game rewards
 
-// Payout endpoint for game services (Diamond Hunt, etc)
-router.post('/payout', asyncHandler(async (req, res) => {
-  const { winnerId, stake, walletMode } = req.body;
-  if (!winnerId || !stake || !walletMode) {
-    return res.status(400).json({ success: false, error: 'winnerId, stake, and walletMode are required' });
-  }
-  try {
-    await prisma.$transaction(async (tx) => {
-      await payoutWinnings(tx, winnerId, stake, walletMode);
-    });
-    res.json({ success: true, message: 'Payout processed successfully' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-}));
+// All payout and balance update logic is now handled by payoutService.js
+// Only keep unrelated endpoints (e.g., balance check, admin withdrawals, etc).
 
 module.exports = router; 

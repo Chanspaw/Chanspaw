@@ -702,3 +702,19 @@ model DatabaseQuery {
 
   @@map("database_queries")
 }
+
+model PlatformRevenue {
+  id          String   @id @default(uuid())
+  matchId     String
+  gameType    String
+  amount      Float
+  currency    String // 'real' or 'virtual'
+  player1Id   String
+  player2Id   String
+  winnerId    String?
+  platformCut Float
+  timestamp   DateTime @default(now())
+  metadata    String?
+
+  @@map("platform_revenue")
+}
