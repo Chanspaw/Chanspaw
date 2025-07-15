@@ -83,10 +83,10 @@ app.use(helmet.contentSecurityPolicy({
   directives: {
     defaultSrc: ["'self'"],
     scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-    styleSrc: ["'self'", "'unsafe-inline'"],
+    styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
     imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
     connectSrc: ["'self'", "ws:", "wss:", "https://api.dicebear.com"],
-    fontSrc: ["'self'", "data:"],
+    fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
     objectSrc: ["'none'"],
     frameSrc: ["'none'"],
     upgradeInsecureRequests: [],
