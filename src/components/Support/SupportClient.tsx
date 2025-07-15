@@ -24,6 +24,7 @@ import {
   ChevronUp,
   ExternalLink
 } from 'lucide-react';
+import { getAIChatResponse } from '../../services/supportAPI';
 
 interface Ticket {
   id: string;
@@ -90,6 +91,8 @@ export function SupportClient() {
     email: 'emergency@chanspaw.com',
     available: true
   });
+  const [aiTries, setAiTries] = useState(1);
+  const [aiEscalation, setAiEscalation] = useState(false);
 
   useEffect(() => {
     loadTickets();
@@ -162,29 +165,49 @@ export function SupportClient() {
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       content: newMessage,
       sender: 'user',
       timestamp: new Date()
     };
-
     setChatMessages(prev => [...prev, userMessage]);
     setNewMessage('');
-
-    // Simulate support response
     setSupportTyping(true);
-    setTimeout(() => {
+    try {
+      const messages = [
+        ...chatMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.content })),
+        { role: 'user', content: newMessage }
+      ];
+      const res = await getAIChatResponse(messages, aiTries);
       setSupportTyping(false);
-      const supportMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: 'Thank you for your message. A support agent will be with you shortly.',
+      if (res.escalation) {
+        setAiEscalation(true);
+        setAiTries(1);
+        setChatMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          content: res.message,
+          sender: 'support',
+          timestamp: new Date()
+        }]);
+      } else {
+        setAiTries(aiTries + 1);
+        setChatMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          content: res.message,
+          sender: 'support',
+          timestamp: new Date()
+        }]);
+      }
+    } catch (e) {
+      setSupportTyping(false);
+      setChatMessages(prev => [...prev, {
+        id: (Date.now() + 2).toString(),
+        content: 'Sorry, there was a problem contacting support. Please try again.',
         sender: 'support',
         timestamp: new Date()
-      };
-      setChatMessages(prev => [...prev, supportMessage]);
-    }, 2000);
+      }]);
+    }
   };
 
   const createTicket = async () => {
@@ -350,11 +373,11 @@ export function SupportClient() {
                   <div className="flex items-center space-x-3">
                     <div className={`w-3 h-3 rounded-full ${isChatConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     <span className="font-semibold">
-                      {isChatConnected ? 'Live Chat Connected' : 'Connecting...'}
+                      {isChatConnected ? 'AI Support Chat' : 'Connecting...'}
                     </span>
                   </div>
                   <div className="text-sm text-gray-400">
-                    Average response time: 2-3 minutes
+                    24/7 Smart AI Assistant
                   </div>
                 </div>
               </div>
@@ -402,16 +425,24 @@ export function SupportClient() {
                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                     placeholder="Type your message..."
                     className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
-                    disabled={!isChatConnected}
+                    disabled={supportTyping || aiEscalation}
                   />
                   <button
                     onClick={sendMessage}
-                    disabled={!isChatConnected || !newMessage.trim()}
+                    disabled={supportTyping || aiEscalation || !newMessage.trim()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg transition-colors"
                   >
                     <Send className="h-4 w-4" />
                   </button>
                 </div>
+                {aiEscalation && (
+                  <div className="mt-4 p-3 bg-yellow-900/40 border border-yellow-700 rounded-lg text-yellow-200 flex items-center space-x-2">
+                    <AlertCircle className="h-5 w-5 text-yellow-400" />
+                    <span>
+                      This issue may require human support. Please contact <a href="mailto:chanspaw1v1@gmail.com" className="underline text-yellow-300">chanspaw1v1@gmail.com</a> or wait for an admin to assist you.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

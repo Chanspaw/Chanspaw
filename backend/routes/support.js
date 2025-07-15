@@ -2,6 +2,7 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+const { getSupportAIResponse } = require('../services/supportAIService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -78,6 +79,16 @@ router.post('/tickets', authenticateToken, asyncHandler(async (req, res) => {
     success: true,
     data: { ticket }
   });
+}));
+
+// AI Support Chat Endpoint
+router.post('/ai', asyncHandler(async (req, res) => {
+  const { messages, tries } = req.body;
+  if (!Array.isArray(messages)) {
+    return res.status(400).json({ success: false, error: 'messages array required' });
+  }
+  const result = await getSupportAIResponse(messages, tries || 1);
+  res.json({ success: true, ...result });
 }));
 
 module.exports = router; 

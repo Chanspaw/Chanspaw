@@ -204,5 +204,18 @@ class SupportAPIService {
   }
 }
 
+export async function getAIChatResponse(messages: {role: string, content: string}[], tries = 1) {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/api/support/ai`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+    },
+    body: JSON.stringify({ messages, tries })
+  });
+  if (!res.ok) throw new Error('Failed to get AI support response');
+  return res.json();
+}
+
 // Create and export a single instance
 export const supportAPI = new SupportAPIService(); 
