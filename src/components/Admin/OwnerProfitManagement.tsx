@@ -91,10 +91,10 @@ export function OwnerProfitManagement() {
       </div>
 
       {message && (
-        <div className={`p-4 mx-6 mt-4 rounded-lg ${message.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}> 
+        <div className="p-4 mx-6 mt-4 rounded-lg bg-gray-800 text-gray-300 border border-gray-700">
           <div className="flex items-center justify-between">
             <span>{message.text}</span>
-            <button onClick={() => setMessage(null)} className="text-white hover:text-gray-200">×</button>
+            <button onClick={() => setMessage(null)} className="text-gray-400 hover:text-gray-200">×</button>
           </div>
         </div>
       )}
