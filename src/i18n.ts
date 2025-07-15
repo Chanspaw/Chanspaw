@@ -26,7 +26,11 @@ const resources = {
         friendRequests: 'Friend Requests',
         findFriends: 'Find Friends',
         invite: 'Invite',
-        invitedYou: '{{user}} invited you to play {{game}}!'
+        invitedYou: '{{user}} invited you to play {{game}}!',
+        enterUserId: 'Enter User ID',
+        online: 'Online',
+        noPendingRequests: 'Pending Requests',
+        allCaughtUp: ''
       },
       admin: {
         invites: 'Invites',
@@ -57,7 +61,8 @@ const resources = {
         confirm: 'Confirm',
         cancel: 'Cancel',
         loading: 'Loading...',
-        refresh: 'Refresh'
+        refresh: 'Refresh',
+        search: 'Search'
       }
     }
   },
