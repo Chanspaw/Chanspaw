@@ -109,6 +109,9 @@ export function Leaderboard() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-yellow-200 text-yellow-900 rounded-lg px-4 py-3 text-center font-semibold text-lg mb-4">
+        🚧 Leaderboard: Coming Soon!
+      </div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center">
           <Trophy className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-gaming-gold" />
