@@ -448,141 +448,143 @@ export function ContentManagement() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">Content Management</h1>
-        <div className="flex items-center space-x-3">
-          <select
-            value={selectedLanguage}
-            onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="px-3 py-2 bg-gaming-dark border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-          >
-            {languages.filter(l => l.isActive).map(lang => (
-              <option key={lang.code} value={lang.code}>
-                {lang.name} ({lang.code.toUpperCase()})
-              </option>
-            ))}
-          </select>
-          <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export Content</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-gaming-dark rounded-lg p-1 border border-gray-700">
-        <div className="flex space-x-1">
-          {[
-            { id: 'banners', label: 'Banners', icon: Image },
-            { id: 'rules', label: 'Rules & FAQ', icon: BookOpen },
-            { id: 'blog', label: 'Blog', icon: Newspaper },
-            { id: 'legal', label: 'Legal', icon: Shield },
-            { id: 'languages', label: 'Languages', icon: Languages }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-gaming-accent text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
+    <div className="min-h-screen bg-card-gradient text-white">
+      <div className="p-6">
+        <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mb-6">
+          <h1 className="text-2xl font-bold text-gaming-accent">Content Management</h1>
+          <div className="flex items-center space-x-3 mt-4">
+            <select
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="px-3 py-2 bg-gaming-dark border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
             >
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              {languages.filter(l => l.isActive).map(lang => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name} ({lang.code.toUpperCase()})
+                </option>
+              ))}
+            </select>
+            <button className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2">
+              <Download className="h-4 w-4" />
+              <span>Export Content</span>
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
-        {activeTab === 'banners' && renderBannersTab()}
-        {activeTab === 'rules' && renderRulesTab()}
-        {activeTab === 'blog' && renderBlogTab()}
-        {activeTab === 'legal' && renderLegalTab()}
-        {activeTab === 'languages' && renderLanguagesTab()}
-      </div>
-
-      {/* Modal for adding/editing content */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gaming-dark rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">
-                {editingItem ? 'Edit' : 'Add'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Language
-                </label>
-                <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
-                  {languages.filter(l => l.isActive).map(lang => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.name} ({lang.code.toUpperCase()})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  placeholder={`Enter ${modalType} title...`}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Content
-                </label>
-                <textarea
-                  rows={6}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  placeholder={`Enter ${modalType} content...`}
-                />
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2" defaultChecked />
-                  <span className="text-gray-300 text-sm">Active</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSave({})}
-                className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save</span>
-              </button>
-            </div>
           </div>
         </div>
-      )}
+
+        {/* Navigation Tabs */}
+        <div className="bg-gaming-dark rounded-lg p-1 border border-gray-700 mb-6">
+          <div className="flex space-x-1">
+            {[
+              { id: 'banners', label: 'Banners', icon: Image },
+              { id: 'rules', label: 'Rules & FAQ', icon: BookOpen },
+              { id: 'blog', label: 'Blog', icon: Newspaper },
+              { id: 'legal', label: 'Legal', icon: Shield },
+              { id: 'languages', label: 'Languages', icon: Languages }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-gaming-accent text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
+          {activeTab === 'banners' && renderBannersTab()}
+          {activeTab === 'rules' && renderRulesTab()}
+          {activeTab === 'blog' && renderBlogTab()}
+          {activeTab === 'legal' && renderLegalTab()}
+          {activeTab === 'languages' && renderLanguagesTab()}
+        </div>
+
+        {/* Modal for adding/editing content */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gaming-dark rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">
+                  {editingItem ? 'Edit' : 'Add'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Language
+                  </label>
+                  <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
+                    {languages.filter(l => l.isActive).map(lang => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name} ({lang.code.toUpperCase()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    placeholder={`Enter ${modalType} title...`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Content
+                  </label>
+                  <textarea
+                    rows={6}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    placeholder={`Enter ${modalType} content...`}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <span className="text-gray-300 text-sm">Active</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSave({})}
+                  className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

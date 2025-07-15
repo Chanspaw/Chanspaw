@@ -81,12 +81,10 @@ export default function ComplianceManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="bg-gray-800 border-b border-gray-700 p-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Compliance Management</h1>
-          <p className="text-gray-400">Monitor compliance reports, rules, and violations</p>
-        </div>
+    <div className="min-h-screen bg-card-gradient text-white">
+      <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mb-6">
+        <h1 className="text-2xl font-bold text-gaming-accent">Compliance Management</h1>
+        <p className="text-gray-400">Monitor compliance reports, rules, and violations</p>
       </div>
       {message && (
         <div className="p-4 mx-6 mt-4 rounded-lg bg-gray-800 text-gray-300 border border-gray-700">
@@ -104,9 +102,9 @@ export default function ComplianceManagement() {
           <button onClick={() => setActiveTab('risk')} className={`px-4 py-2 rounded-lg ${activeTab === 'risk' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-400'}`}>Risk Scoring</button>
         </div>
         {activeTab === 'reports' && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
+          <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Compliance Reports</h3>
+              <h3 className="text-lg font-semibold text-gaming-accent">Compliance Reports</h3>
             </div>
             <table className="w-full">
               <thead className="bg-gray-700">
@@ -137,9 +135,9 @@ export default function ComplianceManagement() {
           </div>
         )}
         {activeTab === 'rules' && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
+          <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Compliance Rules</h3>
+              <h3 className="text-lg font-semibold text-gaming-accent">Compliance Rules</h3>
             </div>
             <table className="w-full">
               <thead className="bg-gray-700">
@@ -168,9 +166,9 @@ export default function ComplianceManagement() {
           </div>
         )}
         {activeTab === 'violations' && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-x-auto">
+          <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Compliance Violations</h3>
+              <h3 className="text-lg font-semibold text-gaming-accent">Compliance Violations</h3>
             </div>
             <table className="w-full">
               <thead className="bg-gray-700">
@@ -203,8 +201,8 @@ export default function ComplianceManagement() {
           </div>
         )}
         {activeTab === 'risk' && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-            <h3 className="text-lg font-semibold mb-4">User Risk Scoring</h3>
+          <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
+            <h3 className="text-lg font-semibold text-gaming-accent mb-4">User Risk Scoring</h3>
             <p className="text-gray-400">Search for a user to view their risk score.</p>
             {/* Implement risk scoring UI as needed */}
           </div>

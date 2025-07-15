@@ -426,151 +426,153 @@ export function NotificationSystem() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-white">Notification System</h1>
-        <div className="flex items-center space-x-3">
-          <button className="bg-gaming-gold text-gaming-dark px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2">
-            <Download className="h-4 w-4" />
-            <span>Export Logs</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-gaming-dark rounded-lg p-1 border border-gray-700">
-        <div className="flex space-x-1">
-          {[
-            { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'scheduled', label: 'Scheduled', icon: Clock },
-            { id: 'alerts', label: 'Admin Alerts', icon: AlertTriangle },
-            { id: 'templates', label: 'Templates', icon: Settings }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-gaming-accent text-white'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700'
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+    <div className="min-h-screen bg-card-gradient text-white">
+      <div className="p-6">
+        <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mb-6">
+          <h1 className="text-3xl font-bold text-gaming-accent">Notification System</h1>
+          <div className="flex items-center space-x-3">
+            <button className="bg-gaming-gold text-gaming-dark px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2">
+              <Download className="h-4 w-4" />
+              <span>Export Logs</span>
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
-        {activeTab === 'notifications' && renderNotificationsTab()}
-        {activeTab === 'scheduled' && renderScheduledTab()}
-        {activeTab === 'alerts' && renderAlertsTab()}
-        {activeTab === 'templates' && renderTemplatesTab()}
-      </div>
-
-      {/* Modal for adding/editing content */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gaming-dark rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">
-                {editingItem ? 'Edit' : 'Create'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  placeholder={`Enter ${modalType} title...`}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Message
-                </label>
-                <textarea
-                  rows={4}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  placeholder={`Enter ${modalType} message...`}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Type
-                  </label>
-                  <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
-                    <option value="info">Info</option>
-                    <option value="success">Success</option>
-                    <option value="warning">Warning</option>
-                    <option value="error">Error</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Target
-                  </label>
-                  <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
-                    <option value="all">All Users</option>
-                    <option value="specific">Specific Users</option>
-                    <option value="admin">Admins Only</option>
-                  </select>
-                </div>
-              </div>
-
-              {modalType === 'scheduled' && (
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Schedule Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  />
-                </div>
-              )}
-
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center">
-                  <input type="checkbox" className="mr-2" defaultChecked />
-                  <span className="text-gray-300 text-sm">Active</span>
-                </label>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleSave({})}
-                className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save</span>
-              </button>
-            </div>
           </div>
         </div>
-      )}
+
+        {/* Navigation Tabs */}
+        <div className="bg-gaming-dark rounded-lg p-1 border border-gray-700">
+          <div className="flex space-x-1">
+            {[
+              { id: 'notifications', label: 'Notifications', icon: Bell },
+              { id: 'scheduled', label: 'Scheduled', icon: Clock },
+              { id: 'alerts', label: 'Admin Alerts', icon: AlertTriangle },
+              { id: 'templates', label: 'Templates', icon: Settings }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-gaming-accent text-white'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
+          {activeTab === 'notifications' && renderNotificationsTab()}
+          {activeTab === 'scheduled' && renderScheduledTab()}
+          {activeTab === 'alerts' && renderAlertsTab()}
+          {activeTab === 'templates' && renderTemplatesTab()}
+        </div>
+
+        {/* Modal for adding/editing content */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gaming-dark rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-white">
+                  {editingItem ? 'Edit' : 'Create'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    placeholder={`Enter ${modalType} title...`}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Message
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    placeholder={`Enter ${modalType} message...`}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      Type
+                    </label>
+                    <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
+                      <option value="info">Info</option>
+                      <option value="success">Success</option>
+                      <option value="warning">Warning</option>
+                      <option value="error">Error</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      Target
+                    </label>
+                    <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
+                      <option value="all">All Users</option>
+                      <option value="specific">Specific Users</option>
+                      <option value="admin">Admins Only</option>
+                    </select>
+                  </div>
+                </div>
+
+                {modalType === 'scheduled' && (
+                  <div>
+                    <label className="block text-gray-300 text-sm font-medium mb-2">
+                      Schedule Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center">
+                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <span className="text-gray-300 text-sm">Active</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSave({})}
+                  className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

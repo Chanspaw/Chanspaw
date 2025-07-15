@@ -355,12 +355,12 @@ export function UserManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-card-gradient text-white">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-6">
+      <div className="bg-gaming-dark border-b border-gray-700 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">User Management</h1>
+            <h1 className="text-2xl font-bold text-gaming-accent">User Management</h1>
             <p className="text-gray-400">Comprehensive user administration and KYC verification</p>
           </div>
           <div className="flex items-center space-x-4">
@@ -402,7 +402,7 @@ export function UserManagement() {
       )}
 
       {/* Navigation Tabs */}
-      <div className="bg-gray-800 border-b border-gray-700">
+      <div className="bg-gaming-dark border-b border-gray-700">
         <div className="flex space-x-1 p-4">
           <button
             onClick={() => setActiveTab('users')}
@@ -441,7 +441,7 @@ export function UserManagement() {
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-gray-800 p-4 border-b border-gray-700">
+      <div className="bg-gaming-dark p-4 border-b border-gray-700">
         <div className="flex items-center space-x-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -486,9 +486,9 @@ export function UserManagement() {
           <>
             {/* Users Tab */}
             {activeTab === 'users' && (
-              <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+              <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mt-6">
                 <div className="p-6 border-b border-gray-700">
-                  <h3 className="text-lg font-semibold">User Management</h3>
+                  <h3 className="text-lg font-semibold text-gaming-accent">User Management</h3>
                   <p className="text-gray-400">Manage user accounts, status, and restrictions</p>
                 </div>
                 <div className="overflow-x-auto">
@@ -607,9 +607,9 @@ export function UserManagement() {
             {activeTab === 'kyc' && (
               <div className="space-y-6">
                 {/* KYC Requests */}
-                <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mt-6">
                   <div className="p-6 border-b border-gray-700">
-                    <h3 className="text-lg font-semibold">KYC Verification Requests</h3>
+                    <h3 className="text-lg font-semibold text-gaming-accent">KYC Verification Requests</h3>
                     <p className="text-gray-400">Review and approve user identity verification documents</p>
                   </div>
                   <div className="overflow-x-auto">
@@ -691,8 +691,8 @@ export function UserManagement() {
             {activeTab === 'bulk' && (
               <div className="space-y-6">
                 {/* Bulk Actions */}
-                <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
-                  <h3 className="text-lg font-semibold mb-4">Bulk Actions</h3>
+                <div className="bg-gaming-dark rounded-xl p-6 border border-gray-700 mt-6">
+                  <h3 className="text-lg font-semibold mb-4 text-gaming-accent">Bulk Actions</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span>Select Action</span>
