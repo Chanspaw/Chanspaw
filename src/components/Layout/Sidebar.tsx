@@ -176,7 +176,23 @@ export function Sidebar({ activeSection, onSectionChange, onAdminClick, isOpen =
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
-                
+                const isLeaderboard = item.id === 'leaderboard';
+                if (isLeaderboard) {
+                  return (
+                    <div key={item.id} className="relative flex items-center">
+                      <button
+                        className={`w-full flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-all text-left group opacity-60 cursor-not-allowed`}
+                        disabled
+                        tabIndex={-1}
+                        aria-disabled="true"
+                      >
+                        <Icon className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium truncate">{item.label}</span>
+                      </button>
+                      <span className="ml-2 text-xs text-gray-400 italic whitespace-nowrap">(Coming Soon)</span>
+                    </div>
+                  );
+                }
                 return (
                   <button
                     key={item.id}
