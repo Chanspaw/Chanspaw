@@ -56,7 +56,8 @@ const resources = {
         close: 'Close',
         confirm: 'Confirm',
         cancel: 'Cancel',
-        loading: 'Loading...'
+        loading: 'Loading...',
+        refresh: 'Refresh'
       }
     }
   },
