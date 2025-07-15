@@ -19,6 +19,14 @@ const defaultConfigs = {
     winnerPercentage: 90,
     minBet: 1,
     maxBet: 100
+  },
+  'chess': {
+    gameId: 'chess',
+    gameName: 'Chess',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 10,
+    maxBet: 1000
   }
   // Add more games as needed
 };

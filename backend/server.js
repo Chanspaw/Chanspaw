@@ -79,7 +79,19 @@ const PORT = process.env.PORT || 3002;
 app.set('trust proxy', 1);
 
 // Security middleware
-app.use(helmet());
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    imgSrc: ["'self'", "data:", "https://api.dicebear.com"],
+    connectSrc: ["'self'", "ws:", "wss:", "https://api.dicebear.com"],
+    fontSrc: ["'self'", "data:"],
+    objectSrc: ["'none'"],
+    frameSrc: ["'none'"],
+    upgradeInsecureRequests: [],
+  },
+}));
 
 // CORS configuration
 const allowedOrigins = [

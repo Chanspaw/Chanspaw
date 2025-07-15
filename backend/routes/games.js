@@ -687,7 +687,12 @@ router.post('/invite', asyncHandler(async (req, res) => {
   }
   // Prevent duplicate invites
   const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
-  const existing = await redis.get(inviteKey);
+  let existing;
+  try {
+    existing = await redis.get(inviteKey);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Redis error', details: err.message });
+  }
   if (existing) {
     return res.status(409).json({ success: false, error: 'Invite already sent and pending' });
   }
@@ -706,7 +711,11 @@ router.post('/invite', asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, error: `Insufficient ${matchType} balance` });
   }
   // Store invite in Redis (expires in 5 minutes)
-  await redis.set(inviteKey, JSON.stringify({ fromUserId, toUserId, gameType, betAmount, matchType }), 'EX', 300);
+  try {
+    await redis.set(inviteKey, JSON.stringify({ fromUserId, toUserId, gameType, betAmount, matchType }), 'EX', 300);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: 'Redis error', details: err.message });
+  }
   inviteStatusMap.set(inviteKey, { status: 'pending', createdAt: Date.now(), fromUserId, toUserId, gameType, betAmount, matchType });
   // Log invite
   await prisma.auditLog.create({ data: { userId: fromUserId, action: 'INVITE_SENT', details: { toUserId, gameType, betAmount, matchType } } });
