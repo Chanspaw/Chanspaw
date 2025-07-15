@@ -38,6 +38,7 @@ const Friends: React.FC = () => {
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
   const [inviteCurrency, setInviteCurrency] = useState<'real' | 'virtual'>('real');
   const [inviteBet, setInviteBet] = useState<number>(10);
+  const [pendingInvites, setPendingInvites] = useState<{ [userId: string]: { status: 'pending' | 'accepted' | 'declined' | 'failed', game: string, bet: number, currency: string, error?: string } }>({});
   const { t } = useTranslation();
 
   // Load data on component mount
@@ -146,11 +147,37 @@ const Friends: React.FC = () => {
       addToast('warning', t('friends.inviteDeclined'));
       setInviteModalOpen(false);
       setInviteTarget(null);
+      setPendingInvites(prev => {
+        const updated = { ...prev };
+        if (data && data.fromUserId) {
+          Object.keys(updated).forEach(uid => {
+            if (uid === data.fromUserId && updated[uid].status === 'pending') updated[uid].status = 'declined';
+          });
+        } else {
+          Object.keys(updated).forEach(uid => {
+            if (updated[uid].status === 'pending') updated[uid].status = 'declined';
+          });
+        }
+        return updated;
+      });
     });
 
     // Listen for match found (invite accepted)
     socket.on('matchFound', (data) => {
       addToast('success', t('friends.matchFound'));
+      setPendingInvites(prev => {
+        const updated = { ...prev };
+        if (data && data.opponentId) {
+          Object.keys(updated).forEach(uid => {
+            if (uid === data.opponentId && updated[uid].status === 'pending') updated[uid].status = 'accepted';
+          });
+        } else {
+          Object.keys(updated).forEach(uid => {
+            if (updated[uid].status === 'pending') updated[uid].status = 'accepted';
+          });
+        }
+        return updated;
+      });
       setTimeout(() => {
         window.location.href = `/match/${data.matchId}`;
       }, 1000);
@@ -161,6 +188,13 @@ const Friends: React.FC = () => {
       addToast('error', t('friends.inviteTimeout'));
       setInviteModalOpen(false);
       setInviteTarget(null);
+      setPendingInvites(prev => {
+        const updated = { ...prev };
+        Object.keys(updated).forEach(uid => {
+          if (updated[uid].status === 'pending') updated[uid].status = 'failed';
+        });
+        return updated;
+      });
     });
 
     return () => {
@@ -323,6 +357,10 @@ const Friends: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
+        setPendingInvites(prev => ({
+          ...prev,
+          [inviteTarget.id]: { status: 'pending', game: inviteGame, bet: betAmount, currency: inviteCurrency }
+        }));
         setInviteSuccess(t('friends.inviteSent'));
         setTimeout(() => {
           setInviteModalOpen(false);
@@ -330,6 +368,10 @@ const Friends: React.FC = () => {
           setInviteSuccess(null);
         }, 2000);
       } else {
+        setPendingInvites(prev => ({
+          ...prev,
+          [inviteTarget.id]: { status: 'failed', game: inviteGame, bet: betAmount, currency: inviteCurrency, error: data.error || t('friends.inviteFailed') }
+        }));
         setInviteError(data.error || t('friends.inviteFailed'));
       }
     } catch (e) {
@@ -518,6 +560,16 @@ const Friends: React.FC = () => {
                   >
                     {t('friends.invite')}
                   </button>
+                  {pendingInvites[friend.id] && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      {pendingInvites[friend.id].status === 'pending' && t('friends.invitePending')}
+                      {pendingInvites[friend.id].status === 'accepted' && t('friends.inviteAccepted')}
+                      {pendingInvites[friend.id].status === 'declined' && t('friends.inviteDeclined')}
+                      {pendingInvites[friend.id].status === 'failed' && (
+                        <span>{t('friends.inviteFailed')}: {pendingInvites[friend.id].error}</span>
+                      )}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
