@@ -111,13 +111,21 @@ export function Header({ onMenuToggle, isMobileMenuOpen, onSectionChange }: Head
             )}
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm sm:text-base">C</span>
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-white font-bold text-sm lg:text-lg">Chanspaw</h1>
-              <p className="text-gray-400 text-xs">Gaming Platform</p>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSectionChange && onSectionChange('home')}
+              className="flex items-center gap-2 focus:outline-none"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              aria-label="Go to Home"
+            >
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm sm:text-base">C</span>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-white font-bold text-sm lg:text-lg">Chanspaw</h1>
+                <p className="text-gray-400 text-xs">Gaming Platform</p>
+              </div>
+            </button>
           </div>
         </div>
 
