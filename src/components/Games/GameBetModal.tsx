@@ -4,6 +4,7 @@ import { GameAPI } from '../../services/gameAPI';
 import { commissionAPI, CommissionConfig } from '../../services/commissionAPI';
 import { DollarSign, Zap, Shield, Sparkles } from 'lucide-react';
 import { getGameId } from '../../utils/gameId';
+import { useTranslation } from 'react-i18next';
 
 interface GameBetModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ export const GameBetModal: React.FC<GameBetModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [commissionConfig, setCommissionConfig] = useState<CommissionConfig | null>(null);
+  const { t } = useTranslation();
 
   // Load commission config when modal opens (only for real money mode)
   useEffect(() => {

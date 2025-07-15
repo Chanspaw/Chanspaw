@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FaSearch, FaUserPlus, FaUserCheck, FaUserTimes, FaGamepad, FaTimes, FaCheck } from "react-icons/fa";
 import { debounce } from "lodash";
 import io, { Socket } from "socket.io-client";
+import { useTranslation } from 'react-i18next';
 
 // Types
 interface User {
@@ -30,6 +31,7 @@ const PlayerSearchInvite: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [matchStarting, setMatchStarting] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const { t } = useTranslation();
 
   // Fetch current user info (assume /api/auth/me returns { id, username })
   useEffect(() => {
@@ -129,21 +131,21 @@ const PlayerSearchInvite: React.FC = () => {
   return (
     <div className="max-w-xl mx-auto p-3 bg-card-gradient border border-gray-700 rounded-lg shadow-lg">
       <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
-        <FaUserPlus className="text-gaming-accent" /> Player Search & 1v1 Invite
+        <FaUserPlus className="text-gaming-accent" /> {t('playerSearch.title')} & {t('invite.1v1')}
       </h2>
       <div className="mb-4 flex items-center gap-2">
         <input
           className="flex-1 bg-gaming-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-gaming-accent focus:outline-none text-sm"
-          placeholder="Search users by username..."
+          placeholder={t('playerSearch.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         <FaSearch className="text-gaming-accent" />
       </div>
-      {loading && <div className="text-gaming-accent mb-2">Searching...</div>}
+      {loading && <div className="text-gaming-accent mb-2">{t('playerSearch.searching')}</div>}
       {results.length > 0 && (
         <div className="mb-4">
-          <div className="font-semibold mb-1 text-white">Results:</div>
+          <div className="font-semibold mb-1 text-white">{t('playerSearch.results')}:</div>
           <ul>
             {results.map(user => (
               <li key={user.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-b-0">
@@ -152,13 +154,13 @@ const PlayerSearchInvite: React.FC = () => {
                   <span className="text-white">{user.username}</span>
                 </span>
                 {user.id === currentUser?.id ? (
-                  <span className="text-xs text-gray-400">(You)</span>
+                  <span className="text-xs text-gray-400">{t('playerSearch.you')}</span>
                 ) : invitesSent.some(i => i.to.id === user.id && i.status === "pending") ? (
                   <button
                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                     onClick={() => cancelInvite(user)}
                   >
-                    <FaTimes /> Cancel Invite
+                    <FaTimes /> {t('invite.cancel')}
                   </button>
                 ) : (
                   <div className="flex gap-2">
@@ -166,14 +168,14 @@ const PlayerSearchInvite: React.FC = () => {
                       className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                       onClick={() => sendInvite(user)}
                     >
-                      <FaUserPlus /> Invite
+                      <FaUserPlus /> {t('invite.invite')}
                     </button>
                     <button
                       className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                       onClick={() => startMatch(user)}
                       disabled={matchStarting === "pending"}
                     >
-                      <FaGamepad /> {matchStarting === "pending" ? "Starting..." : "Instant Match"}
+                      <FaGamepad /> {matchStarting === "pending" ? t('invite.starting') : t('invite.instantMatch')}
                     </button>
                   </div>
                 )}
@@ -183,9 +185,9 @@ const PlayerSearchInvite: React.FC = () => {
         </div>
       )}
       <div className="mb-4">
-        <div className="font-semibold mb-1 text-white">Invites Sent:</div>
+        <div className="font-semibold mb-1 text-white">{t('invite.sent')}:</div>
         {invitesSent.length === 0 ? (
-          <div className="text-gray-400 text-sm">No invites sent.</div>
+          <div className="text-gray-400 text-sm">{t('invite.noInvitesSent')}</div>
         ) : (
           <ul>
             {invitesSent.map(invite => (
@@ -199,7 +201,7 @@ const PlayerSearchInvite: React.FC = () => {
                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                     onClick={() => cancelInvite(invite.to)}
                   >
-                    <FaTimes /> Cancel
+                    <FaTimes /> {t('invite.cancel')}
                   </button>
                 )}
                 {invite.status === "accepted" && invite.matchId && (
@@ -207,11 +209,11 @@ const PlayerSearchInvite: React.FC = () => {
                     href={`/match/${invite.matchId}`}
                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                   >
-                    <FaCheck /> Go to Match
+                    <FaCheck /> {t('invite.goToMatch')}
                   </a>
                 )}
                 {invite.status === "declined" && (
-                  <span className="text-xs text-red-400 flex items-center gap-1"><FaUserTimes /> Declined</span>
+                  <span className="text-xs text-red-400 flex items-center gap-1"><FaUserTimes /> {t('invite.declined')}</span>
                 )}
               </li>
             ))}
@@ -219,9 +221,9 @@ const PlayerSearchInvite: React.FC = () => {
         )}
       </div>
       <div className="mb-4">
-        <div className="font-semibold mb-1 text-white">Invites Received:</div>
+        <div className="font-semibold mb-1 text-white">{t('invite.received')}:</div>
         {invitesReceived.length === 0 ? (
-          <div className="text-gray-400 text-sm">No invites received.</div>
+          <div className="text-gray-400 text-sm">{t('invite.noInvitesReceived')}</div>
         ) : (
           <ul>
             {invitesReceived.map(invite => (
@@ -234,13 +236,13 @@ const PlayerSearchInvite: React.FC = () => {
                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                     onClick={() => acceptInvite(invite.from)}
                   >
-                    <FaCheck /> Accept
+                    <FaCheck /> {t('invite.accept')}
                   </button>
                   <button
                     className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
                     onClick={() => declineInvite(invite.from)}
                   >
-                    <FaTimes /> Decline
+                    <FaTimes /> {t('invite.decline')}
                   </button>
                 </div>
               </li>
@@ -251,7 +253,7 @@ const PlayerSearchInvite: React.FC = () => {
       {matchStarting && matchStarting !== "pending" && (
         <div className="p-4 bg-gaming-dark border border-gaming-accent rounded flex items-center gap-2 mt-4">
           <FaGamepad className="text-gaming-accent" />
-          <span className="text-white">Match started! <a href={`/match/${matchStarting}`} className="underline text-gaming-accent">Go to match</a></span>
+          <span className="text-white">{t('invite.matchStarted')}: <a href={`/match/${matchStarting}`} className="underline text-gaming-accent">{t('invite.goToMatch')}</a></span>
         </div>
       )}
     </div>

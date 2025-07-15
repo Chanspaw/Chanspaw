@@ -46,6 +46,7 @@ import {
 import { supportAPI } from '../../services/supportAPI';
 import { PlatformRevenue } from './PlatformRevenue';
 import ComplianceManagement from './ComplianceManagement';
+import { useTranslation } from 'react-i18next';
 
 interface UserStats {
   total: number;
@@ -207,6 +208,14 @@ export function AdminDashboard() {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [selectedSupportMessage, setSelectedSupportMessage] = useState<SupportMessage | null>(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const { t } = useTranslation();
+  const [inviteMatches, setInviteMatches] = useState<any[]>([]);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteFilter, setInviteFilter] = useState<string>('all');
+  const [inviteSearch, setInviteSearch] = useState<string>('');
+  const [invitePage, setInvitePage] = useState<number>(1);
+  const [inviteTotalPages, setInviteTotalPages] = useState<number>(1);
 
   // Load real data on component mount
   useEffect(() => {
@@ -421,6 +430,47 @@ export function AdminDashboard() {
     (filterStatus === 'all' || message.status === filterStatus)
   );
 
+  const loadInviteMatches = async () => {
+    setInviteLoading(true);
+    setInviteError(null);
+    try {
+      const res = await fetch(`/api/admin/invites?page=${invitePage}&limit=50&status=${inviteFilter !== 'all' ? inviteFilter : ''}&search=${inviteSearch}`);
+      const data = await res.json();
+      if (data.success) {
+        setInviteMatches(data.data.matches);
+        setInviteTotalPages(Number(data.data.pagination.pages));
+      } else {
+        setInviteError(data.error || t('admin.inviteLoadError'));
+      }
+    } catch (e) {
+      setInviteError(t('admin.inviteLoadError'));
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  useEffect(() => { if (activeTab === 'invite-matches') loadInviteMatches(); }, [activeTab, invitePage, inviteFilter, inviteSearch]);
+
+  const handleInviteAction = async (id: string, action: string) => {
+    setInviteLoading(true);
+    setInviteError(null);
+    try {
+      let url = `/api/admin/invites/${id}`;
+      let method = 'POST';
+      if (action === 'delete') method = 'DELETE';
+      if (action === 'cancel') url += '/cancel';
+      if (action === 'refund') url += '/refund';
+      const res = await fetch(url, { method });
+      const data = await res.json();
+      if (!data.success) setInviteError(data.error || t('admin.inviteActionError'));
+      else loadInviteMatches();
+    } catch (e) {
+      setInviteError(t('admin.inviteActionError'));
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'transactions', label: 'Transactions', icon: DollarSign },
@@ -433,7 +483,8 @@ export function AdminDashboard() {
     { id: 'audit', label: 'Audit Logs', icon: Database },
     { id: 'bulk', label: 'Bulk Operations', icon: Zap },
     { id: 'manual-tx', label: 'Manual Transactions', icon: CreditCard },
-    { id: 'system-health', label: 'System Health', icon: Activity }
+    { id: 'system-health', label: 'System Health', icon: Activity },
+    { id: 'invite-matches', label: t('admin.invites'), icon: Gamepad2 },
   ];
 
   if (activeTab === 'admin-compliance') {
@@ -1405,6 +1456,76 @@ export function AdminDashboard() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'invite-matches' && (
+              <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                <div className="p-6 border-b border-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                  <h3 className="text-lg font-semibold text-white">{t('admin.invites')}</h3>
+                  <div className="flex flex-col md:flex-row gap-2 items-center">
+                    <input
+                      type="text"
+                      placeholder={t('admin.searchByUserOrGame')}
+                      value={inviteSearch}
+                      onChange={e => setInviteSearch(e.target.value)}
+                      className="px-3 py-1 bg-gaming-dark border border-gray-600 rounded text-white text-sm placeholder-gray-400 focus:outline-none focus:border-gaming-accent"
+                    />
+                    <select
+                      value={inviteFilter}
+                      onChange={e => setInviteFilter(e.target.value)}
+                      className="px-3 py-1 bg-gaming-dark border border-gray-600 rounded text-white text-sm focus:outline-none focus:border-gaming-accent"
+                    >
+                      <option value="all">{t('admin.all')}</option>
+                      <option value="active">{t('admin.active')}</option>
+                      <option value="cancelled">{t('admin.cancelled')}</option>
+                      <option value="refunded">{t('admin.refunded')}</option>
+                      <option value="completed">{t('admin.completed')}</option>
+                    </select>
+                  </div>
+                </div>
+                {inviteError && <div className="text-red-400 p-4">{inviteError}</div>}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-700">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.user')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.game')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.bet')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.currency')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.status')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.created')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">{t('admin.actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-700">
+                      {inviteLoading ? (
+                        <tr><td colSpan={7} className="text-center text-gray-400 py-8">{t('general.loading')}</td></tr>
+                      ) : inviteMatches.length === 0 ? (
+                        <tr><td colSpan={7} className="text-center text-gray-400 py-8">{t('admin.noInvites')}</td></tr>
+                      ) : inviteMatches.map(match => (
+                        <tr key={match.id} className="hover:bg-gray-700">
+                          <td className="px-4 py-2 text-sm text-white">{match.player1?.username} vs {match.player2?.username}</td>
+                          <td className="px-4 py-2 text-sm text-white">{match.gameType}</td>
+                          <td className="px-4 py-2 text-sm text-white">{match.betAmount}</td>
+                          <td className="px-4 py-2 text-sm text-white">{match.matchType}</td>
+                          <td className="px-4 py-2 text-sm text-white">{t(`admin.${match.status}`)}</td>
+                          <td className="px-4 py-2 text-sm text-white">{new Date(match.createdAt).toLocaleString()}</td>
+                          <td className="px-4 py-2 text-sm">
+                            <button onClick={() => handleInviteAction(match.id, 'cancel')} className="text-yellow-400 hover:text-yellow-300 mr-2">{t('admin.cancel')}</button>
+                            <button onClick={() => handleInviteAction(match.id, 'refund')} className="text-blue-400 hover:text-blue-300 mr-2">{t('admin.refund')}</button>
+                            <button onClick={() => handleInviteAction(match.id, 'delete')} className="text-red-400 hover:text-red-300">{t('admin.delete')}</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex justify-between items-center p-4">
+                  <button disabled={invitePage === 1} onClick={() => setInvitePage(p => Math.max(1, Number(p) - 1))} className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50">{t('admin.prev')}</button>
+                  <span className="text-gray-300 text-sm">{t('admin.page')} {invitePage} / {inviteTotalPages}</span>
+                  <button disabled={invitePage === inviteTotalPages} onClick={() => setInvitePage(p => Math.min(Number(inviteTotalPages), Number(p) + 1))} className="px-3 py-1 bg-gray-700 text-white rounded disabled:opacity-50">{t('admin.next')}</button>
                 </div>
               </div>
             )}

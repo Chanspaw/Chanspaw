@@ -1537,4 +1537,99 @@ router.post('/system/cleanup/sessions', asyncHandler(async (req, res) => {
   });
 }));
 
+// ==================== INVITE-BASED MATCH ADMIN ====================
+
+// List/filter all invite-based matches (real and virtual)
+router.get('/invites', requireAdmin, asyncHandler(async (req, res) => {
+  const { page = 1, limit = 50, status, gameType, userId } = req.query;
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const where = { matchType: { in: ['real', 'virtual'] }, status: undefined };
+  if (status) where.status = status;
+  if (gameType) where.gameType = gameType;
+  if (userId) where.OR = [{ player1Id: userId }, { player2Id: userId }];
+  // Only invite-based matches (with audit log INVITE_SENT or similar)
+  // For now, fetch all matches and filter by audit log
+  const [matches, total] = await Promise.all([
+    prisma.match.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: parseInt(limit),
+      include: {
+        player1: { select: { id: true, username: true } },
+        player2: { select: { id: true, username: true } },
+        winner: { select: { id: true, username: true } }
+      }
+    }),
+    prisma.match.count({ where })
+  ]);
+  // Filter to only those with INVITE_SENT audit log
+  const matchIds = matches.map(m => m.id);
+  const inviteLogs = await prisma.auditLog.findMany({
+    where: { action: 'INVITE_SENT', details: { contains: '' }, resourceId: { in: matchIds } },
+    select: { resourceId: true }
+  });
+  const inviteMatchIds = new Set(inviteLogs.map(l => l.resourceId));
+  const inviteMatches = matches.filter(m => inviteMatchIds.has(m.id));
+  res.json({
+    success: true,
+    data: {
+      matches: inviteMatches,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: inviteMatches.length,
+        pages: Math.ceil(inviteMatches.length / parseInt(limit))
+      }
+    }
+  });
+}));
+
+// Cancel an invite-based match (admin)
+router.post('/invites/:id/cancel', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const match = await prisma.match.findUnique({ where: { id } });
+  if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+  if (match.status !== 'active') return res.status(400).json({ success: false, error: 'Match is not active' });
+  // Refund both players
+  const refundAmount = match.betAmount;
+  if (match.matchType === 'real') {
+    await prisma.user.update({ where: { id: match.player1Id }, data: { real_balance: { increment: refundAmount } } });
+    await prisma.user.update({ where: { id: match.player2Id }, data: { real_balance: { increment: refundAmount } } });
+  } else {
+    await prisma.user.update({ where: { id: match.player1Id }, data: { virtual_balance: { increment: refundAmount } } });
+    await prisma.user.update({ where: { id: match.player2Id }, data: { virtual_balance: { increment: refundAmount } } });
+  }
+  await prisma.match.update({ where: { id }, data: { status: 'cancelled', completedAt: new Date() } });
+  await prisma.auditLog.create({ data: { adminId: req.user.id, action: 'INVITE_MATCH_CANCELLED', resourceType: 'Match', resourceId: id, details: JSON.stringify({ matchId: id, reason: 'Admin cancelled and refunded' }) } });
+  res.json({ success: true, message: 'Match cancelled and refunded' });
+}));
+
+// Delete an invite-based match (admin)
+router.delete('/invites/:id', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  await prisma.match.delete({ where: { id } });
+  await prisma.auditLog.create({ data: { adminId: req.user.id, action: 'INVITE_MATCH_DELETED', resourceType: 'Match', resourceId: id, details: JSON.stringify({ matchId: id }) } });
+  res.json({ success: true, message: 'Match deleted' });
+}));
+
+// Refund an invite-based match (admin, if not already refunded)
+router.post('/invites/:id/refund', requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const match = await prisma.match.findUnique({ where: { id } });
+  if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+  if (match.status === 'refunded') return res.status(400).json({ success: false, error: 'Already refunded' });
+  const refundAmount = match.betAmount;
+  if (match.matchType === 'real') {
+    await prisma.user.update({ where: { id: match.player1Id }, data: { real_balance: { increment: refundAmount } } });
+    await prisma.user.update({ where: { id: match.player2Id }, data: { real_balance: { increment: refundAmount } } });
+  } else {
+    await prisma.user.update({ where: { id: match.player1Id }, data: { virtual_balance: { increment: refundAmount } } });
+    await prisma.user.update({ where: { id: match.player2Id }, data: { virtual_balance: { increment: refundAmount } } });
+  }
+  await prisma.match.update({ where: { id }, data: { status: 'refunded', completedAt: new Date() } });
+  await prisma.auditLog.create({ data: { adminId: req.user.id, action: 'INVITE_MATCH_REFUNDED', resourceType: 'Match', resourceId: id, details: JSON.stringify({ matchId: id, reason: 'Admin refunded' }) } });
+  res.json({ success: true, message: 'Match refunded' });
+}));
+
 module.exports = router; 

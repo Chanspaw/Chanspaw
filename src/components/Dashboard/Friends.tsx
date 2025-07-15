@@ -5,6 +5,8 @@ import { friendAPI, Friend, FriendRequest, SearchResult } from '../../services/f
 import { getSocket } from '../../utils/socket';
 import PlayerSearchInvite from '../UI/PlayerSearchInvite';
 import { useToast } from '../UI/Toast';
+import { GameBetModal } from '../Games/GameBetModal';
+import { useTranslation } from 'react-i18next';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -28,6 +30,15 @@ const Friends: React.FC = () => {
     gameType: string;
     message: string;
   } | null>(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteTarget, setInviteTarget] = useState<OnlineFriend | null>(null);
+  const [inviteGame, setInviteGame] = useState<'connect_four' | 'tic_tac_toe' | 'dice_battle' | 'diamond_hunt' | 'chess'>('chess');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [inviteCurrency, setInviteCurrency] = useState<'real' | 'virtual'>('real');
+  const [inviteBet, setInviteBet] = useState<number>(10);
+  const { t } = useTranslation();
 
   // Load data on component mount
   useEffect(() => {
@@ -93,15 +104,15 @@ const Friends: React.FC = () => {
     const handleGameInvite = (data: { fromUserId: string; fromUsername: string; gameType: string; message: string }) => {
       console.log('Game invitation received:', data);
       setGameInvitation(data);
-      addToast('info', `${data.fromUsername} invited you to play ${data.gameType}!`);
+      addToast('info', t('friends.invitedYou', { user: data.fromUsername, game: data.gameType }));
     };
 
     // Listen for invitation responses
     const handleInviteResponse = (data: { toUserId: string; accepted: boolean; gameType: string }) => {
       if (data.accepted) {
-        addToast('success', `Your game invitation was accepted! Starting ${data.gameType}...`);
+        addToast('success', t('friends.inviteAccepted', { game: data.gameType }));
       } else {
-        addToast('warning', 'Your game invitation was declined.');
+        addToast('warning', t('friends.inviteDeclined'));
       }
     };
 
@@ -118,7 +129,47 @@ const Friends: React.FC = () => {
       socket.off('gameInvite', handleGameInvite);
       socket.off('inviteResponse', handleInviteResponse);
     };
-  }, [user?.id, addToast]);
+  }, [user?.id, addToast, t]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !user?.id) return;
+
+    // Listen for invite received
+    socket.on('invite:received', (data) => {
+      addToast('info', t('friends.inviteReceived', { user: data.fromUserId }));
+      // Optionally, show a modal or notification
+    });
+
+    // Listen for invite declined
+    socket.on('inviteDeclined', (data) => {
+      addToast('warning', t('friends.inviteDeclined'));
+      setInviteModalOpen(false);
+      setInviteTarget(null);
+    });
+
+    // Listen for match found (invite accepted)
+    socket.on('matchFound', (data) => {
+      addToast('success', t('friends.matchFound'));
+      setTimeout(() => {
+        window.location.href = `/match/${data.matchId}`;
+      }, 1000);
+    });
+
+    // Listen for invite timeout (if implemented)
+    socket.on('invite:timeout', () => {
+      addToast('error', t('friends.inviteTimeout'));
+      setInviteModalOpen(false);
+      setInviteTarget(null);
+    });
+
+    return () => {
+      socket.off('invite:received');
+      socket.off('inviteDeclined');
+      socket.off('matchFound');
+      socket.off('invite:timeout');
+    };
+  }, [user?.id, addToast, t]);
 
   const loadFriends = async () => {
     if (!user?.id) return;
@@ -184,14 +235,14 @@ const Friends: React.FC = () => {
     try {
       const result = await friendAPI.sendFriendRequest(friendId);
       if (result.success) {
-        addToast('success', result.message || 'Friend request sent successfully!');
+        addToast('success', result.message || t('friends.friendRequestSent'));
         handleSearch(); // Refresh search results
       } else {
-        addToast('error', result.error || 'Failed to send friend request');
+        addToast('error', result.error || t('friends.friendRequestFailed'));
       }
     } catch (error) {
       console.error('Error sending friend request:', error);
-      addToast('error', 'Network error while sending friend request');
+      addToast('error', t('friends.networkErrorSendingRequest'));
     }
   };
 
@@ -201,15 +252,15 @@ const Friends: React.FC = () => {
     try {
       const result = await friendAPI.acceptFriendRequest(requestId);
       if (result.success) {
-        addToast('success', result.message || 'Friend request accepted!');
+        addToast('success', result.message || t('friends.friendRequestAccepted'));
         loadFriends();
         loadFriendRequests();
       } else {
-        addToast('error', result.error || 'Failed to accept friend request');
+        addToast('error', result.error || t('friends.friendRequestFailed'));
       }
     } catch (error) {
       console.error('Error accepting friend request:', error);
-      addToast('error', 'Failed to accept friend request');
+      addToast('error', t('friends.friendRequestFailed'));
     }
   };
 
@@ -219,14 +270,14 @@ const Friends: React.FC = () => {
     try {
       const result = await friendAPI.rejectFriendRequest(requestId);
       if (result.success) {
-        addToast('success', result.message || 'Friend request declined');
+        addToast('success', result.message || t('friends.friendRequestDeclined'));
         loadFriendRequests();
       } else {
-        addToast('error', result.error || 'Failed to decline friend request');
+        addToast('error', result.error || t('friends.friendRequestFailed'));
       }
     } catch (error) {
       console.error('Error declining friend request:', error);
-      addToast('error', 'Failed to decline friend request');
+      addToast('error', t('friends.friendRequestFailed'));
     }
   };
 
@@ -236,42 +287,56 @@ const Friends: React.FC = () => {
     try {
       const result = await friendAPI.removeFriend(friendId);
       if (result.success) {
-        addToast('success', result.message || 'Friend removed successfully');
+        addToast('success', result.message || t('friends.friendRemoved'));
         loadFriends();
       } else {
-        addToast('error', result.error || 'Failed to remove friend');
+        addToast('error', result.error || t('friends.friendRemoveFailed'));
       }
     } catch (error) {
       console.error('Error removing friend:', error);
-      addToast('error', 'Failed to remove friend');
+      addToast('error', t('friends.friendRemoveFailed'));
     }
   };
 
   const handleInviteToPlay = (friend: OnlineFriend) => {
-    if (!user?.id) return;
-    
-    const socket = getSocket();
-    if (!socket) {
-      addToast('error', 'Connection error. Please refresh the page.');
-      return;
+    setInviteTarget(friend);
+    setInviteModalOpen(true);
+  };
+  const handleInviteModalConfirm = async (betAmount: number) => {
+    if (!user?.id || !inviteTarget) return;
+    setInviteLoading(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+    try {
+      const res = await fetch(`${API_URL}/api/games/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+        },
+        body: JSON.stringify({
+          toUserId: inviteTarget.id,
+          gameType: inviteGame,
+          betAmount,
+          matchType: inviteCurrency
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInviteSuccess(t('friends.inviteSent'));
+        setTimeout(() => {
+          setInviteModalOpen(false);
+          setInviteTarget(null);
+          setInviteSuccess(null);
+        }, 2000);
+      } else {
+        setInviteError(data.error || t('friends.inviteFailed'));
+      }
+    } catch (e) {
+      setInviteError(t('friends.networkError'));
+    } finally {
+      setInviteLoading(false);
     }
-
-    console.log('Sending game invitation:', {
-      toUserId: friend.id,
-      fromUserId: user.id,
-      gameType: 'tictactoe5x5',
-      message: `${user.username} invited you to play!`
-    });
-
-    // Send game invitation via socket
-    socket.emit('gameInvite', {
-      toUserId: friend.id,
-      fromUserId: user.id,
-      gameType: 'tictactoe5x5', // Default game type
-      message: `${user.username} invited you to play!`
-    });
-
-    addToast('success', `Game invitation sent to ${friend.username}!`);
   };
 
   const handleAcceptInvitation = () => {
@@ -279,7 +344,7 @@ const Friends: React.FC = () => {
     
     const socket = getSocket();
     if (!socket) {
-      addToast('error', 'Connection error. Please refresh the page.');
+      addToast('error', t('friends.connectionError'));
       return;
     }
 
@@ -290,7 +355,7 @@ const Friends: React.FC = () => {
     });
 
     setGameInvitation(null);
-    addToast('success', 'Game invitation accepted! Starting game...');
+    addToast('success', t('friends.inviteAccepted'));
   };
 
   const handleDeclineInvitation = () => {
@@ -298,7 +363,7 @@ const Friends: React.FC = () => {
     
     const socket = getSocket();
     if (!socket) {
-      addToast('error', 'Connection error. Please refresh the page.');
+      addToast('error', t('friends.connectionError'));
       return;
     }
 
@@ -309,7 +374,7 @@ const Friends: React.FC = () => {
     });
 
     setGameInvitation(null);
-    addToast('warning', 'Game invitation declined.');
+    addToast('warning', t('friends.inviteDeclined'));
   };
 
   const getStatusBadge = (status: 'online' | 'offline') => {
@@ -320,7 +385,7 @@ const Friends: React.FC = () => {
         <span className={`w-2 h-2 mr-1 rounded-full ${
           status === 'online' ? 'bg-emerald-500' : 'bg-gray-500'
         }`}></span>
-        {status === 'online' ? 'Online' : 'Offline'}
+        {status === 'online' ? t('friends.online') : t('friends.offline')}
       </span>
     );
   };
@@ -330,13 +395,13 @@ const Friends: React.FC = () => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours === 1) return '1 hour ago';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    if (diffInHours < 1) return t('friends.justNow');
+    if (diffInHours === 1) return t('friends.oneHourAgo');
+    if (diffInHours < 24) return `${diffInHours}${t('friends.hoursAgo')}`;
     
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays === 1) return '1 day ago';
-    return `${diffInDays} days ago`;
+    if (diffInDays === 1) return t('friends.oneDayAgo');
+    return `${diffInDays}${t('friends.daysAgo')}`;
   };
 
   return (
@@ -351,41 +416,55 @@ const Friends: React.FC = () => {
               <div className="w-16 h-16 bg-gradient-to-r from-emerald-400 to-blue-400 rounded-full flex items-center justify-center mb-3">
                 <Gamepad2 className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-white">Game Invitation</h3>
+              <h3 className="text-lg font-bold text-white">{t('friends.gameInvitation')}</h3>
             </div>
             <p className="text-gray-300 mb-4 text-center">
-              <span className="font-semibold text-white">{gameInvitation.fromUsername}</span> invited you to play <span className="font-semibold text-white">{gameInvitation.gameType}</span>!
+              <span className="font-semibold text-white">{gameInvitation.fromUsername}</span> {t('friends.invitedYouToPlay', { game: gameInvitation.gameType })}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleAcceptInvitation}
                 className="flex-1 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 py-2 rounded text-sm font-medium"
               >
-                Accept
+                {t('general.accept')}
               </button>
               <button
                 onClick={handleDeclineInvitation}
                 className="flex-1 bg-gray-600 text-white hover:bg-gray-700 py-2 rounded text-sm font-medium"
               >
-                Decline
+                {t('general.decline')}
               </button>
             </div>
           </div>
         </div>
       )}
       
+      {/* Invite Matchmaking Modal */}
+      {inviteModalOpen && inviteTarget && (
+        <GameBetModal
+          open={inviteModalOpen}
+          onClose={() => { setInviteModalOpen(false); setInviteTarget(null); setInviteError(null); setInviteSuccess(null); }}
+          onConfirm={() => {}} // No-op, using onBetConfirmed
+          onBetConfirmed={handleInviteModalConfirm}
+          gameType={inviteGame}
+          userId={user?.id || ''}
+          username={user?.username || ''}
+          userBalances={{ real_balance: user?.real_balance || 0, virtual_balance: user?.virtual_balance || 0 }}
+        />
+      )}
+      
       {/* Tabs */}
       <div className="flex justify-between mb-2">
-        <button onClick={() => setActiveTab('friends')} className={`flex-1 py-2 rounded-l-lg text-sm font-medium ${activeTab === 'friends' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>Friends</button>
-        <button onClick={() => setActiveTab('requests')} className={`flex-1 py-2 text-sm font-medium ${activeTab === 'requests' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>Requests</button>
-        <button onClick={() => setActiveTab('search')} className={`flex-1 py-2 rounded-r-lg text-sm font-medium ${activeTab === 'search' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>Find Friends</button>
+        <button onClick={() => setActiveTab('friends')} className={`flex-1 py-2 rounded-l-lg text-sm font-medium ${activeTab === 'friends' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>{t('friends.yourFriends')}</button>
+        <button onClick={() => setActiveTab('requests')} className={`flex-1 py-2 text-sm font-medium ${activeTab === 'requests' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>{t('friends.friendRequests')}</button>
+        <button onClick={() => setActiveTab('search')} className={`flex-1 py-2 rounded-r-lg text-sm font-medium ${activeTab === 'search' ? 'bg-gray-700 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'} transition-colors focus:outline-none focus:ring-0`}>{t('friends.findFriends')}</button>
       </div>
 
       {/* Friends Tab */}
       {activeTab === 'friends' && (
         <div className="flex flex-col items-center w-full">
           <div className="flex items-center gap-2 mb-2">
-            <h2 className="text-lg font-bold text-white">Your Friends</h2>
+            <h2 className="text-lg font-bold text-white">{t('friends.yourFriends')}</h2>
             <button 
               onClick={() => {
                 const socket = getSocket();
@@ -396,7 +475,7 @@ const Friends: React.FC = () => {
               }}
               className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
             >
-              Refresh
+              {t('general.refresh')}
             </button>
           </div>
           {isLoading ? (
@@ -404,10 +483,10 @@ const Friends: React.FC = () => {
           ) : friends.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 w-full text-gray-400">
               <Users className="w-9 h-9 mb-2 text-gray-600" />
-              <h3 className="text-base font-semibold mb-1 text-center">No friends yet</h3>
-              <p className="mb-2 text-xs text-center">Start by searching for players</p>
+              <h3 className="text-base font-semibold mb-1 text-center">{t('friends.noFriendsYet')}</h3>
+              <p className="mb-2 text-xs text-center">{t('friends.startBySearching')}</p>
               <button onClick={() => setActiveTab('search')} className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs mt-2">
-                Find Friends
+                {t('friends.findFriends')}
               </button>
             </div>
           ) : (
@@ -429,7 +508,7 @@ const Friends: React.FC = () => {
                         <span className={friend.status === 'online' ? 'text-green-500' : 'text-gray-400'}>
                           ●
                         </span>
-                        <span className="text-gray-500">{friend.status === 'online' ? 'Online' : 'Offline'}</span>
+                        <span className="text-gray-500">{friend.status === 'online' ? t('friends.online') : t('friends.offline')}</span>
                       </div>
                     </div>
                   </div>
@@ -437,7 +516,7 @@ const Friends: React.FC = () => {
                     onClick={() => handleInviteToPlay(friend)}
                     className="px-1 py-0.5 h-6 min-w-[44px] bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded-none text-xs ml-2"
                   >
-                    Invite
+                    {t('friends.invite')}
                   </button>
                 </li>
               ))}
@@ -449,12 +528,12 @@ const Friends: React.FC = () => {
       {/* Requests Tab */}
       {activeTab === 'requests' && (
         <div className="flex flex-col items-center w-full">
-          <h2 className="text-lg font-bold mb-2 text-white">Friend Requests</h2>
+          <h2 className="text-lg font-bold mb-2 text-white">{t('friends.friendRequests')}</h2>
           {friendRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-6 w-full text-gray-400">
               <Check className="w-9 h-9 mb-2 text-gray-600" />
-              <h3 className="text-base font-semibold mb-1 text-center">No pending requests</h3>
-              <p className="mb-2 text-xs text-center">You're all caught up!</p>
+              <h3 className="text-base font-semibold mb-1 text-center">{t('friends.noPendingRequests')}</h3>
+              <p className="mb-2 text-xs text-center">{t('friends.allCaughtUp')}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-3 w-full">
@@ -463,8 +542,12 @@ const Friends: React.FC = () => {
                   <div className="w-9 h-9 bg-gray-600 rounded-full flex items-center justify-center mb-1"><Users className="w-4 h-4 text-gray-300" /></div>
                   <p className="font-medium text-white text-center text-sm mb-0.5">{request.sender.username}</p>
                   <div className="flex gap-2 w-full mt-2">
-                    <button onClick={() => handleAcceptRequest(request.id)} className="flex-1 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 py-1.5 rounded text-xs transition-colors focus:outline-none focus:ring-0">Accept</button>
-                    <button onClick={() => handleDeclineRequest(request.id)} className="flex-1 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white py-1.5 rounded text-xs transition-colors focus:outline-none focus:ring-0">Reject</button>
+                    <button onClick={() => handleAcceptRequest(request.id)} className="flex-1 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 py-1.5 rounded text-xs transition-colors focus:outline-none focus:ring-0">
+                      {t('general.accept')}
+                    </button>
+                    <button onClick={() => handleDeclineRequest(request.id)} className="flex-1 bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white py-1.5 rounded text-xs transition-colors focus:outline-none focus:ring-0">
+                      {t('general.reject')}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -476,12 +559,12 @@ const Friends: React.FC = () => {
       {/* Search Tab */}
       {activeTab === 'search' && (
         <div className="flex flex-col items-center w-full">
-          <h2 className="text-lg font-bold mb-2 text-white">Find Friends</h2>
+          <h2 className="text-lg font-bold mb-2 text-white">{t('friends.findFriends')}</h2>
           <form onSubmit={e => { e.preventDefault(); handleSearch(); }} className="w-full mb-3 flex gap-2">
-            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Enter user ID (e.g., CHS-003-USR)" className="flex-1 px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 text-sm focus:outline-none" />
+            <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={t('friends.enterUserId')} className="flex-1 px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 text-sm focus:outline-none" />
             <button type="submit" disabled={isSearching || !searchQuery.trim()} className="w-auto px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1">
               <Search className="w-4 h-4" />
-              {isSearching ? 'Searching...' : 'Search'}
+              {isSearching ? t('general.searching') : t('general.search')}
             </button>
           </form>
           {searchResults.length > 0 && (
@@ -491,7 +574,9 @@ const Friends: React.FC = () => {
                   <div className="w-9 h-9 bg-gray-600 rounded-full flex items-center justify-center mb-1"><Users className="w-4 h-4 text-gray-300" /></div>
                   <p className="font-medium text-white text-center text-sm mb-0.5">{result.username}</p>
                   <p className="text-xs text-gray-400 mb-1">{result.id}</p>
-                  <button onClick={() => handleSendFriendRequest(result.id)} className="bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 w-full py-1.5 rounded text-xs mt-1 transition-colors">Send Request</button>
+                  <button onClick={() => handleSendFriendRequest(result.id)} className="bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 w-full py-1.5 rounded text-xs mt-1 transition-colors">
+                    {t('friends.sendRequest')}
+                  </button>
                 </div>
               ))}
             </div>
@@ -499,8 +584,8 @@ const Friends: React.FC = () => {
           {searchQuery && !isSearching && searchResults.length === 0 && (
             <div className="flex flex-col items-center justify-center py-6 w-full text-gray-400">
               <Search className="w-9 h-9 mb-2 text-gray-600" />
-              <h3 className="text-base font-semibold mb-1 text-center">No users found</h3>
-              <p className="mb-2 text-xs text-center">Try searching with a different username</p>
+              <h3 className="text-base font-semibold mb-1 text-center">{t('friends.noUsersFound')}</h3>
+              <p className="mb-2 text-xs text-center">{t('friends.tryDifferentUsername')}</p>
             </div>
           )}
         </div>

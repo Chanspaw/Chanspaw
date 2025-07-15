@@ -5,6 +5,7 @@ import { Menu, X, Search, Plus, Bell, User, Settings, LogOut, Users, Shield, Tog
 
 import { autoLoginAsAdmin } from '../../utils/autoLogin';
 import { Dialog } from '@headlessui/react';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -22,6 +23,7 @@ export function Header({ onMenuToggle, isMobileMenuOpen, onSectionChange }: Head
   const [reloadSuccess, setReloadSuccess] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const { t, i18n } = useTranslation();
 
   // Fetch wallet balances on mount or when user changes
   useEffect(() => {
@@ -92,6 +94,10 @@ export function Header({ onMenuToggle, isMobileMenuOpen, onSectionChange }: Head
     } finally {
       setReloadLoading(false);
     }
+  };
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    i18n.changeLanguage(e.target.value);
   };
 
   return (
@@ -197,6 +203,17 @@ export function Header({ onMenuToggle, isMobileMenuOpen, onSectionChange }: Head
 
         {/* Right: User Menu */}
         <div className="flex items-center gap-2">
+          {/* Language Switcher */}
+          <select
+            className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 text-xs focus:outline-none mr-2"
+            value={i18n.language}
+            onChange={handleLanguageChange}
+            aria-label="Select language"
+          >
+            <option value="en">EN</option>
+            <option value="fr">FR</option>
+            <option value="ht">HT</option>
+          </select>
           {/* User Menu removed as per request */}
         </div>
       </div>
