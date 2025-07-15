@@ -37,8 +37,15 @@ async function payoutWinnings(tx, winnerId, amount, walletType) {
     }
   });
 
-  // Credit platform owner
-  const platformUser = await tx.user.findFirst({ where: { isOwner: true } });
+  // Credit platform owner (fallback to admin if no owner)
+  let platformUser = await tx.user.findFirst({ where: { isOwner: true } });
+  if (!platformUser) {
+    platformUser = await tx.user.findFirst({ where: { isAdmin: true } });
+    if (platformUser) {
+      await tx.user.update({ where: { id: platformUser.id }, data: { isOwner: true } });
+      console.warn('[WALLET] No owner found, set admin as owner:', platformUser.id);
+    }
+  }
   if (platformUser) {
     await tx.user.update({
       where: { id: platformUser.id },
@@ -55,7 +62,8 @@ async function payoutWinnings(tx, winnerId, amount, walletType) {
       }
     });
   } else {
-    throw new Error('No platform owner found');
+    console.error('[WALLET] No platform owner or admin found for profit payout!');
+    throw new Error('No platform owner or admin found');
   }
 }
 
