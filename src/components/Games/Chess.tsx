@@ -254,6 +254,30 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
     };
   }, [currentMatchId, user?.id, chessEngine]);
 
+  // Helper to convert algebraic to backend coordinates
+  function algebraicToCoords(square: string) {
+    // 'a' = 0, 'b' = 1, ..., 'h' = 7; ranks: '1' = 7, '8' = 0
+    const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
+    const rank = 8 - parseInt(square[1]);
+    return [file, rank];
+  }
+
+  // Replace sendMove logic (add this function)
+  function sendMove(matchId: string, move: { from: string; to: string; promotion?: string }) {
+    if (!socket || !matchId) return;
+    // Convert move to backend format
+    const backendMove = {
+      from: algebraicToCoords(move.from),
+      to: algebraicToCoords(move.to),
+      ...(move.promotion ? { promotion: move.promotion } : {})
+    };
+    socket.emit('makeMove', {
+      matchId,
+      move: backendMove,
+      gameType: 'chess'
+    });
+  }
+
   // Handle cell click
   const handleCellClick = useCallback((square: string) => {
     if (!isMyTurn || gameStatus !== 'playing') return;
@@ -604,7 +628,7 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
           </div>
         </div>
         <MatchChat
-          matchId={matchId || ''}
+          matchId={currentMatchId || ''}
           currentUserId={user?.id || ''}
           currentUsername={user?.username || ''}
           opponentName={opponent || ''}
@@ -632,4 +656,11 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
   }
 
   return null;
+} 
+
+function handlePromotionSelect(piece: string) {
+  if (!pendingMove || !currentMatchId) return;
+  sendMove(currentMatchId, { ...pendingMove, promotion: piece });
+  setPromotionModal(null);
+  setPendingMove(null);
 } 
