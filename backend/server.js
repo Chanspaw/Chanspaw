@@ -2344,7 +2344,7 @@ app.post('/api/payout', async (req, res) => {
   }
 });
 
-// Public endpoint: /api/games/active
+// PUBLIC endpoint for /api/games/active
 const publicGamesRouter = express.Router();
 publicGamesRouter.get('/active', asyncHandler(async (req, res) => {
   const games = await prisma.game.findMany({
@@ -2363,9 +2363,9 @@ publicGamesRouter.get('/active', asyncHandler(async (req, res) => {
   });
   res.json({ success: true, data: games });
 }));
-app.use('/api/games', publicGamesRouter); // Register public /active route first
+app.use('/api/games', publicGamesRouter); // <-- PUBLIC, must come BEFORE protected
 
-// Protected /api/games routes
+// PROTECTED routes
 app.use('/api/games', authenticateToken, gameRoutes);
 
 module.exports = { app, io, userSockets }; 
