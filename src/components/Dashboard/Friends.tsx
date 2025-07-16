@@ -32,6 +32,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     fromUserId: string;
     fromUsername: string;
     gameType: string;
+    matchType: string;
     message: string;
   } | null>(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -118,7 +119,13 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     // Listen for game invitations
     const handleGameInvite = (data: { fromUserId: string; fromUsername: string; gameType: string; message: string }) => {
       console.log('Game invitation received:', data);
-      setGameInvitation(data);
+      setGameInvitation({
+        fromUserId: data.fromUserId,
+        fromUsername: data.fromUsername,
+        gameType: data.gameType,
+        matchType: 'virtual', // Default for old socket-based invites
+        message: data.message
+      });
       addToast('info', t('friends.invitedYou', { user: data.fromUsername, game: data.gameType }));
     };
 
@@ -150,10 +157,12 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
 
     // Listen for invite received
     socket.on('invite:received', (data) => {
+      console.log('🎯 Invite received:', data);
       setGameInvitation({
         fromUserId: data.fromUserId || (data.fromUser && data.fromUser.id),
         fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username),
         gameType: data.gameType,
+        matchType: data.matchType || 'virtual', // Store the matchType
         message: ''
       });
       // No toast here; modal will show
@@ -161,6 +170,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
 
     // Listen for invite declined
     socket.on('inviteDeclined', (data) => {
+      console.log('❌ Invite declined:', data);
       addToast('warning', t('friends.inviteDeclined'));
       setInviteModalOpen(false);
       setInviteTarget(null);
@@ -181,6 +191,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
 
     // Listen for match found (invite accepted)
     socket.on('matchFound', (data) => {
+      console.log('🎮 Match found event received:', data);
       setPendingInvites(prev => {
         const updated = { ...prev };
         if (data && data.opponentId) {
@@ -197,6 +208,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
       
       // Use the app's navigation system instead of window.location.href
       if (onNavigateToGame && data.matchId && data.gameType) {
+        console.log('🚀 Navigating to game:', { gameType: data.gameType, matchId: data.matchId });
         // Map backend game types to frontend game IDs
         const gameTypeMap: { [key: string]: string } = {
           'chess': 'chess',
@@ -207,7 +219,10 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
         };
         
         const frontendGameId = gameTypeMap[data.gameType] || data.gameType;
+        console.log('🎯 Calling onNavigateToGame with:', { frontendGameId, matchId: data.matchId });
         onNavigateToGame(frontendGameId, data.matchId);
+      } else {
+        console.log('❌ Missing data for navigation:', { onNavigateToGame: !!onNavigateToGame, matchId: data.matchId, gameType: data.gameType });
       }
     });
 
@@ -435,42 +450,81 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     }
   };
 
-  const handleAcceptInvitation = () => {
+  const handleAcceptInvitation = async () => {
     if (!gameInvitation || !user?.id) return;
     
-    const socket = getSocket();
-    if (!socket) {
-      addToast('error', t('friends.connectionError'));
-      return;
+    console.log('🎯 Accepting invitation:', gameInvitation);
+    
+    try {
+      const requestBody = {
+        fromUserId: gameInvitation.fromUserId,
+        gameType: gameInvitation.gameType,
+        matchType: gameInvitation.matchType // Use the stored matchType
+      };
+      
+      console.log('📤 Sending accept request:', requestBody);
+      
+      const response = await fetch(`${API_URL}/api/games/invite/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      console.log('📥 Accept response:', data);
+      
+      if (data.success) {
+        setGameInvitation(null);
+        addToast('success', t('friends.inviteAccepted'));
+        // The matchFound event will be emitted by the backend and handled by the socket listener
+      } else {
+        addToast('error', data.error || t('friends.inviteFailed'));
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      addToast('error', t('friends.networkError'));
     }
-
-    socket.emit('inviteResponse', {
-      toUserId: gameInvitation.fromUserId,
-      accepted: true,
-      gameType: gameInvitation.gameType
-    });
-
-    setGameInvitation(null);
-    addToast('success', t('friends.inviteAccepted'));
   };
 
-  const handleDeclineInvitation = () => {
+  const handleDeclineInvitation = async () => {
     if (!gameInvitation || !user?.id) return;
     
-    const socket = getSocket();
-    if (!socket) {
-      addToast('error', t('friends.connectionError'));
-      return;
+    console.log('❌ Declining invitation:', gameInvitation);
+    
+    try {
+      const requestBody = {
+        fromUserId: gameInvitation.fromUserId,
+        gameType: gameInvitation.gameType,
+        matchType: gameInvitation.matchType // Use the stored matchType
+      };
+      
+      console.log('📤 Sending decline request:', requestBody);
+      
+      const response = await fetch(`${API_URL}/api/games/invite/decline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+      console.log('📥 Decline response:', data);
+      
+      if (data.success) {
+        setGameInvitation(null);
+        addToast('warning', t('friends.inviteDeclined'));
+      } else {
+        addToast('error', data.error || t('friends.inviteFailed'));
+      }
+    } catch (error) {
+      console.error('Error declining invitation:', error);
+      addToast('error', t('friends.networkError'));
     }
-
-    socket.emit('inviteResponse', {
-      toUserId: gameInvitation.fromUserId,
-      accepted: false,
-      gameType: gameInvitation.gameType
-    });
-
-    setGameInvitation(null);
-    addToast('warning', t('friends.inviteDeclined'));
   };
 
   const getStatusBadge = (status: 'online' | 'offline') => {
