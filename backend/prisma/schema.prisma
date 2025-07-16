@@ -61,8 +61,8 @@ model User {
   role                        Role?                 @relation(fields: [roleId], references: [id])
   webhooks                    Webhook[]             @relation("WebhookAdmin")
   disputes Dispute[]
-  invitesSent                 Invite[]
-  invitesReceived             Invite[]
+  invitesSent                 Invite[] @relation("InvitesSent")
+  invitesReceived             Invite[] @relation("InvitesReceived")
 
   @@map("users")
 }
@@ -779,8 +779,8 @@ model Invite {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  fromUser   User     @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser     User     @relation(fields: [toUserId], references: [id], onDelete: Cascade)
+  fromUser   User     @relation("InvitesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("InvitesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
   @@index([fromUserId])
   @@index([toUserId])
 }
