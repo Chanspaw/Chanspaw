@@ -15,7 +15,7 @@
     "deploy": "npm run build:production && echo 'Production build ready in dist folder!'",
     "postinstall": "npm install @vitejs/plugin-react",
     "seed:games": "node backend/seed-games.js",
-    "build-and-seed": "npm install && npm run build && cd backend && npm install && cd .. && npx prisma generate --schema=backend/prisma/schema.prisma && npx prisma migrate deploy --schema=backend/prisma/schema.prisma && cp -r dist backend/dist && npm run seed:games"
+    "build-and-seed": "npm install && npm run build && cd backend && npm install && cd .. && npx prisma generate --schema=backend/prisma/schema.prisma && node backend/pre-migrate.js && npx prisma migrate deploy --schema=backend/prisma/schema.prisma && cp -r dist backend/dist && npm run seed:games"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
