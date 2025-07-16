@@ -165,4 +165,13 @@ router.get('/withdrawals/:id', asyncHandler(async (req, res) => {
   });
 }));
 
+// Get current owner wallet balance (Admin only)
+router.get('/wallet-balance', asyncHandler(async (req, res) => {
+  const balance = await ownerProfitService.getOwnerWalletBalance();
+  res.json({
+    success: true,
+    data: balance
+  });
+}));
+
 module.exports = router; 

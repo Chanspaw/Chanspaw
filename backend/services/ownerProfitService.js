@@ -192,6 +192,18 @@ class OwnerProfitService {
       throw error;
     }
   }
+
+  // Get current owner wallet balance
+  async getOwnerWalletBalance() {
+    try {
+      const owner = await prisma.user.findFirst({ where: { isOwner: true }, select: { id: true, username: true, real_balance: true } });
+      if (!owner) return { real_balance: 0 };
+      return { real_balance: owner.real_balance };
+    } catch (error) {
+      console.error('Error getting owner wallet balance:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new OwnerProfitService(); 

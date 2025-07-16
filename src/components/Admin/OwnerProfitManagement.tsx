@@ -39,6 +39,7 @@ export function OwnerProfitManagement() {
   const [withdrawNotes, setWithdrawNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [ownerWallet, setOwnerWallet] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -48,7 +49,7 @@ export function OwnerProfitManagement() {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const [revenueRes, withdrawRes, profitRes] = await Promise.all([
+      const [revenueRes, withdrawRes, profitRes, walletRes] = await Promise.all([
         fetch('/api/admin/platform-revenue', {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -63,11 +64,17 @@ export function OwnerProfitManagement() {
           headers: {
             'Authorization': `Bearer ${token}`
           }
-        }).then(r => r.json()).catch(() => ({ data: { availableProfits: 0 } }))
+        }).then(r => r.json()).catch(() => ({ data: { availableProfits: 0 } })),
+        fetch('/api/owner-profit/wallet-balance', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()).catch(() => ({ data: { real_balance: 0 } }))
       ]);
       setRevenue(revenueRes.data || []);
       setWithdrawals(withdrawRes.data.withdrawals || []);
       setAvailableProfit(profitRes.data.availableProfits || 0);
+      setOwnerWallet(walletRes.data.real_balance || 0);
       setLoading(false);
     } catch (err) {
       setError('Failed to load data');
@@ -135,6 +142,13 @@ export function OwnerProfitManagement() {
           <div>
             <div className="text-gray-400 text-sm">Available Profit</div>
             <div className="text-2xl font-bold text-white">${availableProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+          </div>
+        </div>
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 flex items-center gap-4">
+          <TrendingUp className="h-8 w-8 text-yellow-400" />
+          <div>
+            <div className="text-gray-400 text-sm">Admin Wallet Balance</div>
+            <div className="text-2xl font-bold text-white">${ownerWallet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
           </div>
         </div>
         <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 flex flex-col items-center justify-center gap-2">
