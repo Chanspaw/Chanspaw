@@ -9,6 +9,7 @@ interface GameResultModalProps {
   gameType?: string;
   playerName?: string;
   opponentName?: string;
+  refundMessage?: string;
 }
 
 export function GameResultModal({ 
@@ -18,7 +19,8 @@ export function GameResultModal({
   onClose, 
   gameType = 'game',
   playerName = 'You',
-  opponentName = 'Opponent'
+  opponentName = 'Opponent',
+  refundMessage
 }: GameResultModalProps) {
   const [showAnimation, setShowAnimation] = useState(false);
 
@@ -117,6 +119,12 @@ export function GameResultModal({
                   }}
                 />
               ))}
+            </div>
+          )}
+
+          {refundMessage && (
+            <div className="text-center text-lg font-semibold text-green-400 my-4">
+              {refundMessage}
             </div>
           )}
 

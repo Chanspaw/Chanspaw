@@ -718,7 +718,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
             {resultModalData.isWin
               ? 'You outscored your opponent and won the match!'
               : resultModalData.isDraw
-              ? 'The match ended in a draw.'
+              ? 'The match ended in a draw. Both players have been refunded their stake.'
               : 'Better luck next time!'}
           </p>
           <button

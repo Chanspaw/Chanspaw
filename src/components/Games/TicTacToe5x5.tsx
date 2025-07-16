@@ -698,6 +698,13 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
     }
   }, [showRules]);
 
+  // In the result modal and post-game UI, if resultModalData.isDraw is true, show 'Draw! Both players have been refunded their stake.' and reloadUserBalances().
+  useEffect(() => {
+    if (showResultModal && resultModalData.isDraw) {
+      loadUserBalances();
+    }
+  }, [showResultModal, resultModalData.isDraw]);
+
   // Main menu screen
   if (gameStatus === 'menu') {
     console.log('RENDER: MENU', { gameStatus, board });
@@ -955,6 +962,7 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
         isOpen={showResultModal}
         isWin={resultModalData.isWin}
         isDraw={resultModalData.isDraw}
+        refundMessage={resultModalData.isDraw ? 'Draw! Both players have been refunded their stake.' : undefined}
         onClose={handleResultModalClose}
         gameType="connectfour"
         playerName="You"

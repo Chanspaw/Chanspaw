@@ -631,6 +631,13 @@ export function ConnectFour() {
     }
   }, [showRules]);
 
+  // In the result modal and post-game UI, if resultModalData.isDraw is true, show 'Draw! Both players have been refunded their stake.' and reloadUserBalances().
+  useEffect(() => {
+    if (showResultModal && resultModalData.isDraw) {
+      loadUserBalances();
+    }
+  }, [showResultModal, resultModalData.isDraw]);
+
   // Main menu screen
   if (gameStatus === 'menu') {
     return (
@@ -854,9 +861,10 @@ export function ConnectFour() {
       {showResultModal && (
         <GameResultModal
           isOpen={showResultModal}
-          onClose={handleResultModalClose}
           isWin={resultModalData.isWin}
           isDraw={resultModalData.isDraw}
+          refundMessage={resultModalData.isDraw ? 'Draw! Both players have been refunded their stake.' : undefined}
+          onClose={handleResultModalClose}
           gameType="connect_four"
         />
       )}

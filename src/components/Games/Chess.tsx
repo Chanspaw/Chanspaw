@@ -437,6 +437,13 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
     chessEngine.resetGame();
   };
 
+  // In the result modal and post-game UI, if resultModalData.isDraw is true, show 'Draw! Both players have been refunded their stake.' and reloadUserBalances().
+  useEffect(() => {
+    if (showResultModal && resultModalData.isDraw) {
+      loadUserBalances();
+    }
+  }, [showResultModal, resultModalData.isDraw]);
+
   if (showBetModal && user) {
     return (
       <GameBetModal
@@ -471,6 +478,7 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
         isWin={resultModalData.isWin}
         isDraw={resultModalData.isDraw}
         gameType="chess"
+        refundMessage={resultModalData.isDraw ? 'Draw! Both players have been refunded their stake.' : undefined}
       />
     );
   }
