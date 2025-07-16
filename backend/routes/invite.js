@@ -138,17 +138,27 @@ router.post('/accept', authenticateToken, asyncHandler(async (req, res) => {
   if (toUser[balanceField] < invite.betAmount) return res.status(400).json({ error: t('invite.balance', lang) });
   // Update invite
   await prisma.invite.update({ where: { id: inviteId }, data: { status: 'accepted' } });
-  // Create match and escrow (call existing logic)
-  // ... (integration with matchmakingService or match creation logic)
-  // Notify both users
+  // Create match and escrow
+  const match = await prisma.match.create({
+    data: {
+      gameType: invite.gameType,
+      player1Id: invite.fromUserId,
+      player2Id: invite.toUserId,
+      betAmount: invite.betAmount,
+      status: 'pending',
+      matchType: invite.matchType,
+      gameState: '{}'
+    }
+  });
+  // Notify both users with matchFound event
   const io = req.app.get('io');
   if (io) {
-    io.to(invite.fromUserId).emit('invite:accepted', { inviteId });
-    io.to(invite.toUserId).emit('invite:accepted', { inviteId });
+    io.to(invite.fromUserId).emit('matchFound', { matchId: match.id, gameType: match.gameType });
+    io.to(invite.toUserId).emit('matchFound', { matchId: match.id, gameType: match.gameType });
   }
   // Log
-  await prisma.auditLog.create({ data: { userId, action: 'INVITE_ACCEPTED', details: JSON.stringify({ inviteId }) } });
-  res.json({ success: true, message: t('invite.accepted', lang) });
+  await prisma.auditLog.create({ data: { userId, action: 'INVITE_ACCEPTED', details: JSON.stringify({ inviteId, matchId: match.id }) } });
+  res.json({ success: true, message: t('invite.accepted', lang), matchId: match.id });
 }));
 
 // Decline invite
