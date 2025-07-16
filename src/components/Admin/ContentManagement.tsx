@@ -95,9 +95,10 @@ export function ContentManagement() {
   const [activeTab, setActiveTab] = useState<'banners' | 'announcements' | 'header' | 'footer' | 'rules' | 'blog' | 'legal' | 'languages'>('banners');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'banner' | 'rule' | 'faq' | 'blog' | 'legal'>('banner');
+  const [modalType, setModalType] = useState<'banner' | 'rule' | 'faq' | 'blog' | 'legal' | 'announcement' | 'header' | 'footer'>('banner');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [modalForm, setModalForm] = useState<any>({});
 
   // Remove hardcoded languages - load from API only
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -237,16 +238,12 @@ export function ContentManagement() {
     }
   };
 
-  const handleAddNew = (type: 'banner' | 'rule' | 'faq' | 'blog' | 'legal') => {
-    setModalType(type);
-    setEditingItem(null);
-    setShowModal(true);
+  const handleAddNew = (type: 'banner' | 'rule' | 'faq' | 'blog' | 'legal' | 'announcement' | 'header' | 'footer') => {
+    openModal(type);
   };
 
-  const handleEdit = (item: any, type: 'banner' | 'rule' | 'faq' | 'blog' | 'legal') => {
-    setModalType(type);
-    setEditingItem(item);
-    setShowModal(true);
+  const handleEdit = (item: any, type: 'banner' | 'rule' | 'faq' | 'blog' | 'legal' | 'announcement' | 'header' | 'footer') => {
+    openModal(type, item);
   };
 
   const handleDelete = async (id: string, type: string) => {
@@ -272,23 +269,22 @@ export function ContentManagement() {
     }
   };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async () => {
     setLoading(true);
     try {
       const method = editingItem ? 'PUT' : 'POST';
       const url = editingItem ? `${import.meta.env.VITE_API_URL}/api/content/${editingItem.id}` : `${import.meta.env.VITE_API_URL}/api/content`;
-      // Map the correct field to 'content' for backend
-      let contentValue = data.content;
+      let contentValue = modalForm.content;
       if (!contentValue) {
-        if (data.body) contentValue = data.body;
-        else if (data.description) contentValue = data.description;
-        else if (data.text) contentValue = data.text;
+        if (modalForm.body) contentValue = modalForm.body;
+        else if (modalForm.description) contentValue = modalForm.description;
+        else if (modalForm.text) contentValue = modalForm.text;
       }
       const body = JSON.stringify({
-        ...data,
+        ...modalForm,
         content: contentValue,
         type: modalType,
-        status: data.status || 'active',
+        status: modalForm.status || (modalForm.isActive ? 'active' : 'inactive') || 'active',
       });
       const res = await fetch(url, {
         method,
@@ -309,6 +305,18 @@ export function ContentManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    let fieldValue: any = value;
+    if (type === 'checkbox' && e.target instanceof HTMLInputElement) {
+      fieldValue = e.target.checked;
+    }
+    setModalForm((prev: any) => ({
+      ...prev,
+      [name]: fieldValue
+    }));
   };
 
   const renderBannersTab = () => (
@@ -540,6 +548,13 @@ export function ContentManagement() {
     </div>
   );
 
+  const openModal = (type: any, item: any = null) => {
+    setModalType(type);
+    setEditingItem(item);
+    setModalForm(item ? { ...item } : {});
+    setShowModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-card-gradient text-white">
       <div className="p-6">
@@ -620,13 +635,18 @@ export function ContentManagement() {
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              
-              <div className="space-y-4">
+              <form
+                onSubmit={e => { e.preventDefault(); handleSave(); }}
+                className="space-y-4"
+              >
                 <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Language
-                  </label>
-                  <select className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent">
+                  <label className="block text-gray-300 text-sm font-medium mb-2">Language</label>
+                  <select
+                    name="language"
+                    value={modalForm.language || selectedLanguage}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                  >
                     {languages.filter(l => l.isActive).map(lang => (
                       <option key={lang.code} value={lang.code}>
                         {lang.name} ({lang.code.toUpperCase()})
@@ -634,52 +654,85 @@ export function ContentManagement() {
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Title
-                  </label>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">Title</label>
                   <input
                     type="text"
+                    name="title"
+                    value={modalForm.title || ''}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
                     placeholder={`Enter ${modalType} title...`}
+                    required
                   />
                 </div>
-
                 <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Content
-                  </label>
+                  <label className="block text-gray-300 text-sm font-medium mb-2">Content</label>
                   <textarea
+                    name="content"
                     rows={6}
+                    value={modalForm.content || ''}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
                     placeholder={`Enter ${modalType} content...`}
+                    required
                   />
                 </div>
-
+                {(modalType === 'banner' || modalType === 'announcement') && (
+                  <>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-2">Image URL</label>
+                      <input
+                        type="text"
+                        name="mediaUrl"
+                        value={modalForm.mediaUrl || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                        placeholder="Enter image URL..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-2">Link</label>
+                      <input
+                        type="text"
+                        name="link"
+                        value={modalForm.link || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                        placeholder="Enter link URL..."
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="flex items-center space-x-4">
                   <label className="flex items-center">
-                    <input type="checkbox" className="mr-2" defaultChecked />
+                    <input
+                      type="checkbox"
+                      name="isActive"
+                      checked={modalForm.isActive !== false}
+                      onChange={handleInputChange}
+                      className="mr-2"
+                    />
                     <span className="text-gray-300 text-sm">Active</span>
                   </label>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleSave({})}
-                  className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>Save</span>
-                </button>
-              </div>
+                <div className="flex items-center justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-gray-400 hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-gaming-accent text-white px-4 py-2 rounded-lg hover:opacity-90 flex items-center space-x-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Save</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
