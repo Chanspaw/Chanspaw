@@ -212,34 +212,28 @@ export function SupportClient() {
 
   const createTicket = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/support/tickets', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(newTicket)
-      // });
-      
-      const ticket: Ticket = {
-        id: Date.now().toString(),
-        ...newTicket,
-        status: 'open',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: 'current-user',
-        username: 'Current User',
-        messages: []
-      };
-
-      setTickets(prev => [ticket, ...prev]);
-      setNewTicket({
-        subject: '',
-        description: '',
-        category: 'technical',
-        priority: 'medium'
+      const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+      const res = await fetch('/api/support/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          subject: newTicket.subject,
+          description: newTicket.description,
+          category: newTicket.category,
+          priority: newTicket.priority
+        })
       });
-      setShowNewTicketForm(false);
+      if (!res.ok) throw new Error('Failed to create support ticket');
+      const data = await res.json();
+      // Optionally update UI with new ticket
+      setTickets(prev => [data.data.ticket, ...prev]);
+      setNewTicket({ subject: '', description: '', category: 'technical', priority: 'medium' });
+      setNewMessage('Support ticket created successfully.');
     } catch (error) {
-      console.error('Error creating ticket:', error);
+      setNewMessage('Failed to create support ticket.');
     }
   };
 

@@ -63,8 +63,7 @@ class CommissionAPI {
   private baseURL: string;
 
   constructor() {
-    // Use fallback URL for browser environment
-    this.baseURL = import.meta.env.VITE_API_URL + '/api';
+    this.baseURL = import.meta.env.VITE_API_URL + '/api/commission';
   }
 
   // Calculate commission for a game result
@@ -83,97 +82,39 @@ class CommissionAPI {
 
   // Process game result and create transaction
   async processGameResult(gameResult: Omit<GameResult, 'winnerPayout' | 'platformCommission'>): Promise<Transaction> {
-    try {
-      // Get commission config for the game
-      const config = await this.getCommissionConfig(gameResult.gameId);
-      
-      // Calculate payouts
-      const { winnerPayout, platformCommission } = this.calculateCommission(gameResult.betAmount, config);
-      
-      // Create complete game result
-      const completeResult: GameResult = {
-        ...gameResult,
-        winnerPayout,
-        platformCommission
-      };
-
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${this.baseURL}/commission/process-game`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(completeResult)
-      // });
-      
-      // Mock response for demonstration
-      const transaction: Transaction = {
-        id: `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        gameResult: completeResult,
-        processedAt: new Date(),
-        transactionHash: `hash-${Math.random().toString(36).substr(2, 16)}`
-      };
-
-      return transaction;
-    } catch (error) {
-      console.error('Error processing game result:', error);
-      throw new Error('Failed to process game result');
-    }
+    // No dedicated endpoint; handled by payout/game logic
+    throw new Error('processGameResult should be handled by the game or payout API, not commissionAPI');
   }
 
   // Get commission configuration for a specific game
   async getCommissionConfig(gameId: string): Promise<CommissionConfig> {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`${this.baseURL}/commission/config/${gameId}`);
-      if (response.ok) {
-        return await response.json();
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const response = await fetch(`${this.baseURL}/config/${gameId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-      
-      // Return default config if API call fails
-      return {
-        gameId,
-        gameName: 'Unknown Game',
-        houseEdge: 10,
-        winnerPercentage: 90,
-        minBet: 1,
-        maxBet: 100
-      };
-    } catch (error) {
-      console.error('Error fetching commission config:', error);
-      // Return default config on error
-      return {
-        gameId,
-        gameName: 'Unknown Game',
-        houseEdge: 10,
-        winnerPercentage: 90,
-        minBet: 1,
-        maxBet: 100
-      };
-    }
+    });
+    if (!response.ok) throw new Error('Failed to fetch commission config');
+    return await response.json();
   }
 
   // Update commission configuration
   async updateCommissionConfig(gameId: string, config: Partial<CommissionConfig>): Promise<CommissionConfig> {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`${this.baseURL}/commission/config/${gameId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
-      });
-      if (response.ok) {
-        return await response.json();
-      }
-      
-      // Return current config if update fails
-      return await this.getCommissionConfig(gameId);
-    } catch (error) {
-      console.error('Error updating commission config:', error);
-      // Return current config on error
-      return await this.getCommissionConfig(gameId);
-    }
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const response = await fetch(`${this.baseURL}/config/${gameId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(config)
+    });
+    if (!response.ok) throw new Error('Failed to update commission config');
+    return await response.json();
   }
 
-  // Get transaction history
+  // Get transaction history (use /api/payments/transactions)
   async getTransactionHistory(filters?: {
     gameId?: string;
     playerId?: string;
@@ -181,99 +122,45 @@ class CommissionAPI {
     endDate?: Date;
     status?: string;
   }): Promise<Transaction[]> {
-    try {
-      // TODO: Replace with actual API call
-      const queryParams = new URLSearchParams();
-      if (filters?.gameId) queryParams.append('gameId', filters.gameId);
-      if (filters?.playerId) queryParams.append('playerId', filters.playerId);
-      if (filters?.startDate) queryParams.append('startDate', filters.startDate.toISOString());
-      if (filters?.endDate) queryParams.append('endDate', filters.endDate.toISOString());
-      if (filters?.status) queryParams.append('status', filters.status);
-      
-      const response = await fetch(`${this.baseURL}/commission/transactions?${queryParams}`);
-      if (response.ok) {
-        return await response.json();
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const params = new URLSearchParams();
+    if (filters?.gameId) params.append('gameId', filters.gameId);
+    if (filters?.playerId) params.append('playerId', filters.playerId);
+    if (filters?.startDate) params.append('startDate', filters.startDate.toISOString());
+    if (filters?.endDate) params.append('endDate', filters.endDate.toISOString());
+    if (filters?.status) params.append('status', filters.status);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/transactions?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-      
-      // Return empty array if API call fails
-      return [];
-    } catch (error) {
-      console.error('Error fetching transaction history:', error);
-      // Return empty array on error
-      return [];
-    }
+    });
+    if (!response.ok) throw new Error('Failed to fetch transaction history');
+    const data = await response.json();
+    return data.data?.transactions || [];
   }
 
-  // Get financial statistics
-  async getFinancialStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<{
-    totalRevenue: number;
-    totalCommission: number;
-    totalGames: number;
-    averageBet: number;
-    topGames: Array<{ gameName: string; revenue: number; games: number }>;
-  }> {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`${this.baseURL}/commission/stats?period=${period}`);
-      if (response.ok) {
-        return await response.json();
+  // Get financial statistics (use /api/payments/stats)
+  async getFinancialStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/stats?period=${period}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-      
-      // Return empty data if API call fails
-      return {
-        totalRevenue: 0,
-        totalCommission: 0,
-        totalGames: 0,
-        averageBet: 0,
-        topGames: []
-      };
-    } catch (error) {
-      console.error('Error fetching financial stats:', error);
-      // Return empty data on error
-      return {
-        totalRevenue: 0,
-        totalCommission: 0,
-        totalGames: 0,
-        averageBet: 0,
-        topGames: []
-      };
-    }
+    });
+    if (!response.ok) throw new Error('Failed to fetch financial stats');
+    return await response.json();
   }
 
-  // Bonus and promotion management
+  // Bonus and promotion management (not implemented)
   async getBonusPromotions(): Promise<BonusPromotion[]> {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`${this.baseURL}/commission/bonuses`);
-      if (response.ok) {
-        return await response.json();
-      }
-      
-      // Return empty array if API call fails
-      return [];
-    } catch (error) {
-      console.error('Error fetching bonus promotions:', error);
-      // Return empty array on error
-      return [];
-    }
+    throw new Error('Bonus promotions API not implemented');
   }
 
-  // Loyalty program management
+  // Loyalty program management (not implemented)
   async getLoyaltyTiers(): Promise<LoyaltyTier[]> {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`${this.baseURL}/commission/loyalty`);
-      if (response.ok) {
-        return await response.json();
-      }
-      
-      // Return empty array if API call fails
-      return [];
-    } catch (error) {
-      console.error('Error fetching loyalty tiers:', error);
-      // Return empty array on error
-      return [];
-    }
+    throw new Error('Loyalty tiers API not implemented');
   }
 
   // Validate bet amount against commission config
