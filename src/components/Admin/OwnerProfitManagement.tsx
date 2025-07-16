@@ -146,6 +146,10 @@ export function OwnerProfitManagement() {
             <TrendingUp className="h-5 w-5" />
             Request Withdrawal
           </button>
+          <button onClick={loadData} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded transition-colors mt-2">
+            <RefreshCw className="h-5 w-5" />
+            Refresh
+          </button>
         </div>
       </div>
       {message && <div className="mb-4 text-center text-sm text-gray-300 bg-gray-800 rounded p-2">{message}</div>}

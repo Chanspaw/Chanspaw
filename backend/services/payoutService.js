@@ -161,6 +161,7 @@ async function payoutMatch({ matchId, gameType, player1Id, player2Id, winnerId, 
           metadata: JSON.stringify({ result: 'win' })
         }
       });
+      console.log(`[PAYOUT] PlatformRevenue created: matchId=${matchId}, gameType=${gameType}, amount=${totalPot}, platformCut=${platformAmount}, currency=${currency}`);
       console.log(`[PAYOUT] Winner ${winnerId} received $${winnerAmount}, owner ${platformUser.id} received $${platformAmount} for match ${matchId}`);
       return { winnerId, platformCut: platformAmount, refunded: false };
     } catch (err) {
