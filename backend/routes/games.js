@@ -755,83 +755,164 @@ router.post('/invite', asyncHandler(async (req, res) => {
 
 // Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
-  const { fromUserId, gameType, matchType = 'real' } = req.body;
-  const toUserId = req.user.id;
-  const redis = req.app.get('redis');
-  const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
-  const invite = await redis.get(inviteKey);
-  if (!invite) return res.status(404).json({ success: false, error: 'Invite not found or expired' });
-  const { betAmount } = JSON.parse(invite);
-  await redis.del(inviteKey);
-  inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'accepted' });
-  // Escrow bets atomically
+  console.log('🎯 Invite accept request received:', { body: req.body, user: req.user?.id });
+  
   try {
-    await escrowBets({ player1Id: fromUserId, player2Id: toUserId, betAmount, currency: matchType, matchId: null, gameType });
-  } catch (err) {
-    return res.status(400).json({ success: false, error: err.message });
-  }
-  // Check both balances
-  const [p1, p2] = await Promise.all([
-    prisma.user.findUnique({ where: { id: fromUserId } }),
-    prisma.user.findUnique({ where: { id: toUserId } })
-  ]);
-  const p1Balance = matchType === 'real' ? p1.real_balance : p1.virtual_balance;
-  const p2Balance = matchType === 'real' ? p2.real_balance : p2.virtual_balance;
-  if (p1Balance < betAmount || p2Balance < betAmount) {
-    return res.status(400).json({ success: false, error: 'One or both players have insufficient balance' });
-  }
-  // Deduct from both
-  if (matchType === 'real') {
-    await prisma.user.update({ where: { id: fromUserId }, data: { real_balance: { decrement: betAmount } } });
-    await prisma.user.update({ where: { id: toUserId }, data: { real_balance: { decrement: betAmount } } });
-  } else {
-    await prisma.user.update({ where: { id: fromUserId }, data: { virtual_balance: { decrement: betAmount } } });
-    await prisma.user.update({ where: { id: toUserId }, data: { virtual_balance: { decrement: betAmount } } });
-  }
-  // Log audit
-  await prisma.auditLog.create({ data: { userId: fromUserId, action: 'ESCROW_DEBIT', details: { matchType: gameType, betAmount, currency: matchType } } });
-  await prisma.auditLog.create({ data: { userId: toUserId, action: 'ESCROW_DEBIT', details: { matchType: gameType, betAmount, currency: matchType } } });
-  // Create match
-  const initialState = getInitialGameState(gameType, [fromUserId, toUserId]);
-  const match = await prisma.match.create({
-    data: {
-      gameType,
-      player1Id: fromUserId,
-      player2Id: toUserId,
-      betAmount,
-      status: 'active',
-      startedAt: new Date(),
-      gameState: initialState,
-      escrow: betAmount * 2,
-      matchType
+    const { fromUserId, gameType, matchType = 'real' } = req.body;
+    const toUserId = req.user.id;
+    
+    if (!fromUserId || !gameType) {
+      console.log('❌ Missing required fields:', { fromUserId, gameType });
+      return res.status(400).json({ success: false, error: 'Missing required fields: fromUserId and gameType' });
     }
-  });
-  // Log match creation
-  await prisma.auditLog.create({ data: { userId: null, action: 'MATCH_CREATED', details: { matchId: match.id, gameType, betAmount, player1Id: fromUserId, player2Id: toUserId, matchType } } });
-  // Notify both users
-  const userSockets = req.app.get('userSockets');
-  [fromUserId, toUserId].forEach(uid => {
-    const sock = userSockets.get(uid);
-    if (sock) sock.emit('matchFound', { matchId: match.id, gameType, betAmount, matchType });
-  });
-  res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
+    
+    const redis = req.app.get('redis');
+    if (!redis) {
+      console.log('❌ Redis not available');
+      return res.status(500).json({ success: false, error: 'Redis service not available' });
+    }
+    
+    const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
+    console.log('🔍 Looking for invite with key:', inviteKey);
+    
+    const invite = await redis.get(inviteKey);
+    if (!invite) {
+      console.log('❌ Invite not found or expired');
+      return res.status(404).json({ success: false, error: 'Invite not found or expired' });
+    }
+    
+    console.log('✅ Invite found:', invite);
+    const { betAmount } = JSON.parse(invite);
+    await redis.del(inviteKey);
+    inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'accepted' });
+    
+    // Escrow bets atomically
+    try {
+      await escrowBets({ player1Id: fromUserId, player2Id: toUserId, betAmount, currency: matchType, matchId: null, gameType });
+    } catch (err) {
+      console.log('❌ Escrow error:', err.message);
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    
+    // Check both balances
+    const [p1, p2] = await Promise.all([
+      prisma.user.findUnique({ where: { id: fromUserId } }),
+      prisma.user.findUnique({ where: { id: toUserId } })
+    ]);
+    
+    if (!p1 || !p2) {
+      console.log('❌ User not found:', { p1: !!p1, p2: !!p2 });
+      return res.status(404).json({ success: false, error: 'One or both users not found' });
+    }
+    
+    const p1Balance = matchType === 'real' ? p1.real_balance : p1.virtual_balance;
+    const p2Balance = matchType === 'real' ? p2.real_balance : p2.virtual_balance;
+    
+    if (p1Balance < betAmount || p2Balance < betAmount) {
+      console.log('❌ Insufficient balance:', { p1Balance, p2Balance, betAmount });
+      return res.status(400).json({ success: false, error: 'One or both players have insufficient balance' });
+    }
+    
+    // Deduct from both
+    if (matchType === 'real') {
+      await prisma.user.update({ where: { id: fromUserId }, data: { real_balance: { decrement: betAmount } } });
+      await prisma.user.update({ where: { id: toUserId }, data: { real_balance: { decrement: betAmount } } });
+    } else {
+      await prisma.user.update({ where: { id: fromUserId }, data: { virtual_balance: { decrement: betAmount } } });
+      await prisma.user.update({ where: { id: toUserId }, data: { virtual_balance: { decrement: betAmount } } });
+    }
+    
+    // Log audit
+    await prisma.auditLog.create({ data: { userId: fromUserId, action: 'ESCROW_DEBIT', details: { matchType: gameType, betAmount, currency: matchType } } });
+    await prisma.auditLog.create({ data: { userId: toUserId, action: 'ESCROW_DEBIT', details: { matchType: gameType, betAmount, currency: matchType } } });
+    
+    // Create match
+    const initialState = getInitialGameState(gameType, [fromUserId, toUserId]);
+    const match = await prisma.match.create({
+      data: {
+        gameType,
+        player1Id: fromUserId,
+        player2Id: toUserId,
+        betAmount,
+        status: 'active',
+        startedAt: new Date(),
+        gameState: initialState,
+        escrow: betAmount * 2,
+        matchType
+      }
+    });
+    
+    console.log('✅ Match created:', match.id);
+    
+    // Log match creation
+    await prisma.auditLog.create({ data: { userId: null, action: 'MATCH_CREATED', details: { matchId: match.id, gameType, betAmount, player1Id: fromUserId, player2Id: toUserId, matchType } } });
+    
+    // Notify both users
+    const userSockets = req.app.get('userSockets');
+    [fromUserId, toUserId].forEach(uid => {
+      const sock = userSockets.get(uid);
+      if (sock) {
+        console.log('📡 Emitting matchFound to user:', uid);
+        sock.emit('matchFound', { matchId: match.id, gameType, betAmount, matchType });
+      } else {
+        console.log('⚠️ User socket not found:', uid);
+      }
+    });
+    
+    console.log('✅ Invite accept completed successfully');
+    res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
+    
+  } catch (error) {
+    console.error('❌ Error in invite accept:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 }));
 
 // Decline 1v1 invite (production-ready)
 router.post('/invite/decline', asyncHandler(async (req, res) => {
-  const { fromUserId, gameType, matchType = 'real' } = req.body;
-  const toUserId = req.user.id;
-  const redis = req.app.get('redis');
-  const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
-  await redis.del(inviteKey);
-  inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'declined' });
-  // Optionally: notify inviter
-  const userSockets = req.app.get('userSockets');
-  const sock = userSockets.get(fromUserId);
-  if (sock) sock.emit('inviteDeclined', { toUserId, gameType, matchType });
-  // Log audit
-  await prisma.auditLog.create({ data: { userId: toUserId, action: 'INVITE_DECLINED', details: { fromUserId, gameType, matchType } } });
-  res.json({ success: true, message: 'Invite declined' });
+  console.log('❌ Invite decline request received:', { body: req.body, user: req.user?.id });
+  
+  try {
+    const { fromUserId, gameType, matchType = 'real' } = req.body;
+    const toUserId = req.user.id;
+    
+    if (!fromUserId || !gameType) {
+      console.log('❌ Missing required fields:', { fromUserId, gameType });
+      return res.status(400).json({ success: false, error: 'Missing required fields: fromUserId and gameType' });
+    }
+    
+    const redis = req.app.get('redis');
+    if (!redis) {
+      console.log('❌ Redis not available');
+      return res.status(500).json({ success: false, error: 'Redis service not available' });
+    }
+    
+    const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
+    console.log('🔍 Looking for invite with key:', inviteKey);
+    
+    await redis.del(inviteKey);
+    inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'declined' });
+    
+    // Optionally: notify inviter
+    const userSockets = req.app.get('userSockets');
+    const sock = userSockets.get(fromUserId);
+    if (sock) {
+      console.log('📡 Emitting inviteDeclined to user:', fromUserId);
+      sock.emit('inviteDeclined', { toUserId, gameType, matchType });
+    } else {
+      console.log('⚠️ Inviter socket not found:', fromUserId);
+    }
+    
+    // Log audit
+    await prisma.auditLog.create({ data: { userId: toUserId, action: 'INVITE_DECLINED', details: { fromUserId, gameType, matchType } } });
+    
+    console.log('✅ Invite decline completed successfully');
+    res.json({ success: true, message: 'Invite declined' });
+    
+  } catch (error) {
+    console.error('❌ Error in invite decline:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 }));
 
 // Admin: List all invites
@@ -860,7 +941,7 @@ router.post('/admin/invite/cancel', requireAdmin, asyncHandler(async (req, res) 
 }));
 
 // Create match and deduct stakes for both players
-router.post('/api/match/create', asyncHandler(async (req, res) => {
+router.post('/match/create', asyncHandler(async (req, res) => {
   const { matchId, player1, player2, stake, walletMode } = req.body;
   if (!matchId || !player1 || !player2 || !stake || !walletMode) {
     return res.status(400).json({ success: false, error: 'Missing required parameters' });
