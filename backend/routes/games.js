@@ -745,7 +745,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   }
   inviteStatusMap.set(inviteKey, { status: 'pending', createdAt: Date.now(), fromUserId, toUserId, gameType, betAmount, matchType });
   // Log invite
-  await prisma.auditLog.create({ data: { userId: fromUserId, action: 'INVITE_SENT', details: { toUserId, gameType, betAmount, matchType } } });
+  await prisma.auditLog.create({ data: { userId: fromUserId, action: 'INVITE_SENT', details: JSON.stringify({ toUserId, gameType, betAmount, matchType }) } });
   // Notify invited user
   const userSockets = req.app.get('userSockets');
   const sock = userSockets.get(toUserId);
