@@ -48,7 +48,7 @@ export function OwnerProfitManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('chanspaw_access_token');
       const [revenueRes, withdrawRes, profitRes, walletRes] = await Promise.all([
         fetch('/api/admin/platform-revenue', {
           headers: {
@@ -87,12 +87,12 @@ export function OwnerProfitManagement() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('chanspaw_access_token');
       const res = await fetch('/api/admin/owner-withdrawals', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount),
@@ -102,19 +102,19 @@ export function OwnerProfitManagement() {
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (res.ok) {
+        setMessage('Withdrawal request submitted successfully');
         setShowWithdrawModal(false);
         setWithdrawAmount('');
         setWithdrawMethod('bank_transfer');
         setWithdrawAccount('');
         setWithdrawNotes('');
-        setMessage('Withdrawal request submitted');
         loadData();
       } else {
-        setMessage(data.error || 'Failed to submit withdrawal');
+        setMessage(data.error || 'Failed to submit withdrawal request');
       }
-    } catch {
-      setMessage('Error submitting withdrawal');
+    } catch (err) {
+      setMessage('Failed to submit withdrawal request');
     } finally {
       setSubmitting(false);
     }

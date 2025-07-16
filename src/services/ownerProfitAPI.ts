@@ -44,7 +44,7 @@ export interface WithdrawalFilters {
 
 class OwnerProfitAPI {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('chanspaw_access_token');
     
     const config: RequestInit = {
       headers: {
