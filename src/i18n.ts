@@ -7,10 +7,10 @@ const resources = {
     translation: {
       invite: {
         title: 'Invite to Match',
-        selectGame: 'Select Game',
-        selectCurrency: 'Select Currency',
-        selectBet: 'Select Bet Amount',
-        send: 'Send Invite',
+        selectGame: 'Select game',
+        selectCurrency: 'Select currency',
+        selectBet: 'Select bet amount',
+        send: 'Send invite',
         waiting: 'Waiting for response...',
         accepted: 'Invitation accepted! Redirecting you to the match...',
         declined: 'Invitation declined.',
@@ -22,9 +22,9 @@ const resources = {
         success: 'Your invitation has been sent!'
       },
       friends: {
-        yourFriends: 'Your Friends',
-        friendRequests: 'Friend Requests',
-        findFriends: 'Find Friends',
+        yourFriends: 'Your friends',
+        friendRequests: 'Friend requests',
+        findFriends: 'Find friends',
         invite: 'Invite',
         invitedYou: '{{user}} invited you to play {{game}}!',
         invitedYouToPlay: '{{user}} invited you to play {{game}}!',
@@ -39,7 +39,15 @@ const resources = {
         online: 'Online',
         offline: 'Offline',
         noPendingRequests: 'No pending requests.',
-        allCaughtUp: 'You are all caught up!'
+        allCaughtUp: 'You are all caught up!',
+        selectGame: 'Select game'
+      },
+      games: {
+        chess: 'Chess',
+        connectFour: 'Connect Four',
+        diamondHunt: 'Diamond Hunt',
+        ticTacToe5x5: 'Tic Tac Toe 5x5',
+        diceBattle: 'Dice Battle'
       },
       admin: {
         invites: 'Invites',
@@ -71,7 +79,8 @@ const resources = {
         cancel: 'Cancel',
         loading: 'Loading...',
         refresh: 'Refresh',
-        search: 'Search'
+        search: 'Search',
+        next: 'Next'
       }
     }
   },
