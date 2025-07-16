@@ -128,16 +128,15 @@ export function SupportClient() {
 
   const loadFAQ = async () => {
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/support/faq', {
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=faq', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (response.ok) {
         const data = await response.json();
-        setFaqItems(data.data?.faqs || data.faqs || []);
+        setFaqItems(data.data?.contents || data.contents || []);
       } else {
         console.error('Failed to load FAQ:', response.status);
         setFaqItems([]);

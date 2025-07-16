@@ -116,16 +116,16 @@ export function ContentManagement() {
 
   const loadLanguages = async () => {
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/content/languages', {
+      // If languages are stored as content type, fetch with type=language
+      const response = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=language', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (response.ok) {
         const data = await response.json();
-        setLanguages(data.languages || data || []);
+        setLanguages(data.data?.contents || data.contents || []);
       } else {
         setLanguages([]);
       }
@@ -137,83 +137,69 @@ export function ContentManagement() {
 
   const loadContentData = async () => {
     try {
-      // Load banners from real API
-      const bannersResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content/banners', {
+      // Load banners
+      const bannersResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=banner', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (bannersResponse.ok) {
         const bannersData = await bannersResponse.json();
-        setBanners(bannersData.data?.banners || bannersData.banners || []);
+        setBanners(bannersData.data?.contents || bannersData.contents || []);
       } else {
-        console.error('Failed to load banners:', bannersResponse.status);
         setBanners([]);
       }
-
-      // Load game rules from real API
-      const rulesResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content/rules', {
+      // Load game rules
+      const rulesResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=rule', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (rulesResponse.ok) {
         const rulesData = await rulesResponse.json();
-        setGameRules(rulesData.data?.rules || rulesData.rules || []);
+        setGameRules(rulesData.data?.contents || rulesData.contents || []);
       } else {
-        console.error('Failed to load game rules:', rulesResponse.status);
         setGameRules([]);
       }
-
-      // Load FAQs from real API
-      const faqsResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content/faqs', {
+      // Load FAQs
+      const faqsResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=faq', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (faqsResponse.ok) {
         const faqsData = await faqsResponse.json();
-        setFaqs(faqsData.data?.faqs || faqsData.faqs || []);
+        setFaqs(faqsData.data?.contents || faqsData.contents || []);
       } else {
-        console.error('Failed to load FAQs:', faqsResponse.status);
         setFaqs([]);
       }
-
-      // Load blog posts from real API
-      const blogResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content/blog', {
+      // Load blog posts
+      const blogResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=blog', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (blogResponse.ok) {
         const blogData = await blogResponse.json();
-        setBlogPosts(blogData.data?.posts || blogData.posts || []);
+        setBlogPosts(blogData.data?.contents || blogData.contents || []);
       } else {
-        console.error('Failed to load blog posts:', blogResponse.status);
         setBlogPosts([]);
       }
-
-      // Load legal documents from real API
-      const legalResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content/legal', {
+      // Load legal documents
+      const legalResponse = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=legal', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
           'Content-Type': 'application/json'
         }
       });
-      
       if (legalResponse.ok) {
         const legalData = await legalResponse.json();
-        setLegalDocuments(legalData.data?.documents || legalData.documents || []);
+        setLegalDocuments(legalData.data?.contents || legalData.contents || []);
       } else {
-        console.error('Failed to load legal documents:', legalResponse.status);
         setLegalDocuments([]);
       }
     } catch (error) {
