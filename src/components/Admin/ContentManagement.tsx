@@ -277,8 +277,16 @@ export function ContentManagement() {
     try {
       const method = editingItem ? 'PUT' : 'POST';
       const url = editingItem ? `${import.meta.env.VITE_API_URL}/api/content/${editingItem.id}` : `${import.meta.env.VITE_API_URL}/api/content`;
+      // Map the correct field to 'content' for backend
+      let contentValue = data.content;
+      if (!contentValue) {
+        if (data.body) contentValue = data.body;
+        else if (data.description) contentValue = data.description;
+        else if (data.text) contentValue = data.text;
+      }
       const body = JSON.stringify({
         ...data,
+        content: contentValue,
         type: modalType,
         status: data.status || 'active',
       });
