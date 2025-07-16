@@ -2345,8 +2345,6 @@ app.post('/api/payout', async (req, res) => {
 });
 
 // Public endpoint: /api/games/active
-const express = require('express');
-const { asyncHandler } = require('./middleware/errorHandler');
 const publicGamesRouter = express.Router();
 publicGamesRouter.get('/active', asyncHandler(async (req, res) => {
   const games = await prisma.game.findMany({
