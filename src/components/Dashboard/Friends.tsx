@@ -40,7 +40,16 @@ const Friends: React.FC = () => {
   const [inviteBet, setInviteBet] = useState<number>(10);
   const [pendingInvites, setPendingInvites] = useState<{ [userId: string]: { status: 'pending' | 'accepted' | 'declined' | 'failed', game: string, bet: number, currency: string, error?: string } }>({});
   const [inviteUserBalances, setInviteUserBalances] = useState<{ real_balance: number; virtual_balance: number }>({ real_balance: 0, virtual_balance: 0 });
+  const [gameSelectModalOpen, setGameSelectModalOpen] = useState(false);
+  const [pendingInviteFriend, setPendingInviteFriend] = useState<OnlineFriend | null>(null);
   const { t } = useTranslation();
+  const gameOptions = [
+    { value: 'chess', label: t('games.chess') },
+    { value: 'connect_four', label: t('games.connectFour') },
+    { value: 'diamond_hunt', label: t('games.diamondHunt') },
+    { value: 'tic_tac_toe', label: t('games.ticTacToe5x5') },
+    { value: 'dice_battle', label: t('games.diceBattle') },
+  ];
 
   // Load data on component mount
   useEffect(() => {
@@ -334,7 +343,14 @@ const Friends: React.FC = () => {
   };
 
   const handleInviteToPlay = async (friend: OnlineFriend) => {
-    setInviteTarget(friend);
+    setPendingInviteFriend(friend);
+    setGameSelectModalOpen(true);
+  };
+
+  const handleGameSelectConfirm = async (selectedGame: string) => {
+    setInviteGame(selectedGame as typeof inviteGame);
+    setGameSelectModalOpen(false);
+    setInviteTarget(pendingInviteFriend);
     // Fetch latest wallet balances before opening modal
     try {
       const response = await fetch(`${API_URL}/api/wallet/balance`, {
@@ -513,6 +529,38 @@ const Friends: React.FC = () => {
           username={user?.username || ''}
           userBalances={inviteUserBalances}
         />
+      )}
+      
+      {/* Game Selection Modal */}
+      {gameSelectModalOpen && pendingInviteFriend && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-neutral-900 rounded-lg shadow-lg p-6 w-full max-w-xs">
+            <h2 className="text-base font-medium text-center mb-4">{t('friends.selectGame')}</h2>
+            <select
+              className="w-full p-2 rounded bg-neutral-800 text-white text-sm mb-4 border border-neutral-700"
+              value={inviteGame}
+              onChange={e => setInviteGame(e.target.value as typeof inviteGame)}
+            >
+              {gameOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 mt-2">
+              <button
+                className="flex-1 py-2 rounded bg-gradient-to-r from-emerald-400 to-blue-400 text-white text-sm font-medium hover:opacity-90"
+                onClick={() => handleGameSelectConfirm(inviteGame)}
+              >
+                {t('general.next')}
+              </button>
+              <button
+                className="flex-1 py-2 rounded bg-neutral-700 text-gray-200 text-sm hover:bg-neutral-600"
+                onClick={() => { setGameSelectModalOpen(false); setPendingInviteFriend(null); }}
+              >
+                {t('general.cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       
       {/* Tabs */}
