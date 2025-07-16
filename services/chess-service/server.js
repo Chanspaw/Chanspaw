@@ -254,8 +254,8 @@ function initializeChessBoard() {
 
 function validateChessMove(gameState, move, playerId) {
   const { from, to } = move;
-  const [fromFile, fromRank] = from.split('').map(Number);
-  const [toFile, toRank] = to.split('').map(Number);
+  const [fromFile, fromRank] = from;
+  const [toFile, toRank] = to;
   
   const piece = gameState.board[fromRank][fromFile];
   if (!piece) {
