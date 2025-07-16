@@ -322,7 +322,8 @@ app.use('/auth', authRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/friends', authenticateToken, friendRoutes);
-app.use('/api/games', authenticateToken, gameRoutes);
+app.use('/api/games/public', gameRoutes); // public endpoints like /active
+app.use('/api/games', authenticateToken, gameRoutes); // protected endpoints
 app.use('/api/payments', authenticateToken, paymentRoutes);
 app.use('/api/wallet', authenticateToken, paymentRoutes);
 

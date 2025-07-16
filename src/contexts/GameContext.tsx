@@ -217,7 +217,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           }
         });
       } else {
-        response = await fetch(`${import.meta.env.VITE_API_URL}/api/games/active`, {
+        response = await fetch(`${import.meta.env.VITE_API_URL}/api/games/public/active`, {
           headers: {
             'Content-Type': 'application/json'
           }
