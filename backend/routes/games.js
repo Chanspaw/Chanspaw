@@ -783,12 +783,17 @@ router.post('/invite', asyncHandler(async (req, res) => {
   
   // Notify invited user
   const userSockets = req.app.get('userSockets');
+  console.log('🔍 UserSockets map size:', userSockets.size);
+  console.log('🔍 Looking for target user socket:', toUserId);
+  console.log('🔍 Available user IDs in userSockets:', Array.from(userSockets.keys()));
+  
   const sock = userSockets.get(toUserId);
   if (sock) {
     console.log('📡 Emitting invite:received to user:', toUserId);
     sock.emit('invite:received', { fromUserId, gameType, betAmount, matchType });
   } else {
     console.log('⚠️ Target user socket not found:', toUserId);
+    console.log('⚠️ This means the user is not connected to the socket or not in userSockets map');
   }
   
   console.log('✅ Invite creation completed successfully');

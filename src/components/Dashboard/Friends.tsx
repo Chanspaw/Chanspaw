@@ -78,14 +78,19 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
   // Handle socket connection and status updates
   useEffect(() => {
     const socket = getSocket();
-    if (!socket || !user?.id) return;
+    if (!socket || !user?.id) {
+      console.log('❌ Socket or user not available:', { socket: !!socket, userId: user?.id });
+      return;
+    }
 
-    console.log('Setting up socket listeners for user:', user.id);
-    console.log('Socket connected:', socket.connected);
+    console.log('🔌 Setting up socket listeners for user:', user.id);
+    console.log('🔌 Socket connected:', socket.connected);
+    console.log('🔌 Socket ID:', socket.id);
+    console.log('🔌 User authenticated:', !!localStorage.getItem('chanspaw_access_token'));
 
     // Request online users when component loads
     socket.emit('getOnlineUsers');
-    console.log('Requested online users');
+    console.log('📡 Requested online users');
 
     // Listen for initial online users list
     const handleOnlineUsers = (onlineUserIds: string[]) => {
