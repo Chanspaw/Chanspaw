@@ -208,13 +208,28 @@ export function ContentManagement() {
       }
       // Announcements
       const annRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=announcement', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
-      setAnnouncements(annRes.ok ? (await annRes.json()).data?.contents || (await annRes.json()).contents || [] : []);
+      let annData = [];
+      if (annRes.ok) {
+        const json = await annRes.json();
+        annData = json.data?.contents || json.contents || [];
+      }
+      setAnnouncements(annData);
       // Header
       const headerRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=header', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
-      setHeaderContent(headerRes.ok ? (await headerRes.json()).data?.contents || (await headerRes.json()).contents || [] : []);
+      let headerData = [];
+      if (headerRes.ok) {
+        const json = await headerRes.json();
+        headerData = json.data?.contents || json.contents || [];
+      }
+      setHeaderContent(headerData);
       // Footer
       const footerRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=footer', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
-      setFooterContent(footerRes.ok ? (await footerRes.json()).data?.contents || (await footerRes.json()).contents || [] : []);
+      let footerData = [];
+      if (footerRes.ok) {
+        const json = await footerRes.json();
+        footerData = json.data?.contents || json.contents || [];
+      }
+      setFooterContent(footerData);
     } catch (error) {
       console.error('Error loading content data:', error);
     } finally {
