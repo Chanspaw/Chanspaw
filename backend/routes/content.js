@@ -31,9 +31,11 @@ router.get('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res
 
 // Create new content
 router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { type, title, content, mediaUrl, status, publishAt, expireAt } = req.body;
+  const { type, title, content, mediaUrl, status, publishAt, expireAt, language } = req.body;
+  const authorId = req.user.id;
+  const tags = req.body.tags || [];
   const newContent = await prisma.content.create({
-    data: { type, title, content, mediaUrl, status, publishAt, expireAt }
+    data: { type, title, content, mediaUrl, status, publishAt, expireAt, authorId, tags, language }
   });
   res.json({ success: true, data: newContent });
 }));
