@@ -56,9 +56,10 @@ export function PlatformRevenue() {
 
   const loadRevenue = async () => {
     try {
+      const token = localStorage.getItem('chanspaw_access_token');
       const response = await fetch(import.meta.env.VITE_API_URL + `/api/admin/platform-revenue?timeRange=${timeRange}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -78,9 +79,10 @@ export function PlatformRevenue() {
 
   const loadStats = async () => {
     try {
+      const token = localStorage.getItem('chanspaw_access_token');
       const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/platform-revenue/stats', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -96,9 +98,10 @@ export function PlatformRevenue() {
 
   const loadWithdrawals = async () => {
     try {
+      const token = localStorage.getItem('chanspaw_access_token');
       const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/platform-revenue/withdrawals', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -113,9 +116,10 @@ export function PlatformRevenue() {
 
   const loadBreakdown = async () => {
     try {
+      const token = localStorage.getItem('chanspaw_access_token');
       const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/platform-revenue/breakdown', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -144,10 +148,11 @@ export function PlatformRevenue() {
     setMessage(null);
 
     try {
+      const token = localStorage.getItem('chanspaw_access_token');
       const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/platform-revenue/withdraw', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

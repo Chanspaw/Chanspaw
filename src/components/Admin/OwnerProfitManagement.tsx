@@ -47,10 +47,23 @@ export function OwnerProfitManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const [revenueRes, withdrawRes, profitRes] = await Promise.all([
-        fetch('/api/admin/platform-revenue').then(r => r.json()),
-        fetch('/api/admin/owner-withdrawals').then(r => r.json()),
-        fetch('/api/owner-profit/available').then(r => r.json()).catch(() => ({ data: { availableProfits: 0 } }))
+        fetch('/api/admin/platform-revenue', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()),
+        fetch('/api/admin/owner-withdrawals', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()),
+        fetch('/api/owner-profit/profits/available', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(r => r.json()).catch(() => ({ data: { availableProfits: 0 } }))
       ]);
       setRevenue(revenueRes.data || []);
       setWithdrawals(withdrawRes.data.withdrawals || []);
@@ -67,9 +80,13 @@ export function OwnerProfitManagement() {
     setSubmitting(true);
     setMessage(null);
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch('/api/admin/owner-withdrawals', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount),
           method: withdrawMethod,
