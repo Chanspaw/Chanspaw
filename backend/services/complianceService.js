@@ -56,8 +56,20 @@ class ComplianceService {
     return violation;
   }
   async riskScoreUser(userId) {
-    // Placeholder: implement risk scoring logic
-    return Math.floor(Math.random() * 100);
+    // Production-ready risk scoring logic
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return 100; // Max risk if user not found
+    // Count unresolved compliance violations
+    const unresolvedViolations = await prisma.complianceViolation.count({ where: { userId, status: { not: 'RESOLVED' } } });
+    // Check KYC status (assuming isVerified means KYC passed)
+    const kycScore = user.isVerified ? 0 : 30;
+    // Count recent logins (last 7 days)
+    const recentLogins = await prisma.auditLog.count({ where: { userId, action: 'login', createdAt: { gte: new Date(Date.now() - 7*24*60*60*1000) } } });
+    // Risk score: base 20 + unresolved violations*20 + kycScore - recentLogins*2 (min 0, max 100)
+    let score = 20 + unresolvedViolations * 20 + kycScore - recentLogins * 2;
+    if (score < 0) score = 0;
+    if (score > 100) score = 100;
+    return score;
   }
 }
 
