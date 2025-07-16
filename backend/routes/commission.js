@@ -12,8 +12,24 @@ const defaultConfigs = {
     minBet: 1,
     maxBet: 100
   },
+  'diamond_hunt': {
+    gameId: 'diamond_hunt',
+    gameName: 'Diamond Hunt',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
+  },
   'tic-tac-toe': {
     gameId: 'tic-tac-toe',
+    gameName: 'Tic Tac Toe',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
+  },
+  'tic_tac_toe': {
+    gameId: 'tic_tac_toe',
     gameName: 'Tic Tac Toe',
     houseEdge: 10,
     winnerPercentage: 90,
@@ -27,8 +43,39 @@ const defaultConfigs = {
     winnerPercentage: 90,
     minBet: 10,
     maxBet: 1000
+  },
+  'connect_four': {
+    gameId: 'connect_four',
+    gameName: 'Connect Four',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
+  },
+  'connect-four': {
+    gameId: 'connect-four',
+    gameName: 'Connect Four',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
+  },
+  'dice_battle': {
+    gameId: 'dice_battle',
+    gameName: 'Dice Battle',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
+  },
+  'dice-battle': {
+    gameId: 'dice-battle',
+    gameName: 'Dice Battle',
+    houseEdge: 10,
+    winnerPercentage: 90,
+    minBet: 1,
+    maxBet: 100
   }
-  // Add more games as needed
 };
 
 // GET /api/commission/config/:gameId
