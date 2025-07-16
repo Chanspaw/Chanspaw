@@ -148,8 +148,13 @@ const Friends: React.FC = () => {
 
     // Listen for invite received
     socket.on('invite:received', (data) => {
-      setGameInvitation(data);
-      addToast('info', t('friends.inviteReceived', { user: data.fromUsername, game: data.gameType }));
+      setGameInvitation({
+        fromUserId: data.fromUserId || (data.fromUser && data.fromUser.id),
+        fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username),
+        gameType: data.gameType,
+        message: ''
+      });
+      // No toast here; modal will show
     });
 
     // Listen for invite declined
@@ -174,7 +179,6 @@ const Friends: React.FC = () => {
 
     // Listen for match found (invite accepted)
     socket.on('matchFound', (data) => {
-      addToast('success', t('friends.matchFound'));
       setPendingInvites(prev => {
         const updated = { ...prev };
         if (data && data.opponentId) {
@@ -190,7 +194,7 @@ const Friends: React.FC = () => {
       });
       setTimeout(() => {
         window.location.href = `/match/${data.matchId}`;
-      }, 1000);
+      }, 100);
     });
 
     // Listen for invite timeout (if implemented)
