@@ -30,18 +30,18 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
 
 // Get disputes (admin only)
 router.get('/disputes', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const disputes = [
-    {
-      id: 'dispute-1',
-      userId: 'user-1',
-      username: 'user1',
-      type: 'payment',
-      description: 'Payment not received',
-      status: 'open',
-      createdAt: new Date()
-    }
-  ];
-
+  const disputes = await prisma.dispute.findMany({
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true
+        }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
   res.json({
     success: true,
     data: { disputes }

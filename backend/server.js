@@ -1407,6 +1407,23 @@ io.on('connection', async (socket) => {
         };
         if (playerSocket) playerSocket.emit('matchEnded', matchEndedPayload);
         if (opponentSocket) opponentSocket.emit('matchEnded', matchEndedPayload);
+        // Payout logic for real-money games
+        if (gameState.walletMode === 'real' && winnerId) {
+          try {
+            await payoutMatch({
+              matchId,
+              gameType: gameState.gameId,
+              player1Id: gameState.player1,
+              player2Id: gameState.player2,
+              winnerId,
+              betAmount: gameState.stake,
+              currency: gameState.walletMode,
+              isDraw: false
+            });
+          } catch (err) {
+            console.error(`[PAYOUT ERROR] Could not pay out winnings to ${winnerId}:`, err);
+          }
+        }
       }
       
       return;

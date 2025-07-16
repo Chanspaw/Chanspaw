@@ -990,17 +990,15 @@ router.get('/alerts', asyncHandler(async (req, res) => {
 
 // Get admin settings
 router.get('/settings', asyncHandler(async (req, res) => {
-  const settings = {
-    siteName: 'Chanspaw Gaming Platform',
-    maintenanceMode: false,
-    registrationEnabled: true,
-    emailVerificationRequired: false,
-    maxBetAmount: 1000,
-    minWithdrawalAmount: 10,
-    maxWithdrawalAmount: 5000,
-    commissionRate: 0.05
-  };
-
+  let settings = await prisma.adminSettings.findFirst({
+    orderBy: { createdAt: 'asc' }
+  });
+  if (!settings) {
+    // Create default settings if not present
+    settings = await prisma.adminSettings.create({
+      data: {}
+    });
+  }
   res.json({
     success: true,
     data: { settings }
@@ -1009,33 +1007,33 @@ router.get('/settings', asyncHandler(async (req, res) => {
 
 // Update admin settings
 router.put('/settings', asyncHandler(async (req, res) => {
-  const {
-    siteName,
-    maintenanceMode,
-    registrationEnabled,
-    emailVerificationRequired,
-    maxBetAmount,
-    minWithdrawalAmount,
-    maxWithdrawalAmount,
-    commissionRate
-  } = req.body;
-
-  // In a real app, you'd save these to a database
-  const settings = {
-    siteName: siteName || 'Chanspaw Gaming Platform',
-    maintenanceMode: maintenanceMode || false,
-    registrationEnabled: registrationEnabled !== undefined ? registrationEnabled : true,
-    emailVerificationRequired: emailVerificationRequired || false,
-    maxBetAmount: maxBetAmount || 1000,
-    minWithdrawalAmount: minWithdrawalAmount || 10,
-    maxWithdrawalAmount: maxWithdrawalAmount || 5000,
-    commissionRate: commissionRate || 0.05
-  };
-
+  let settings = await prisma.adminSettings.findFirst({
+    orderBy: { createdAt: 'asc' }
+  });
+  if (!settings) {
+    settings = await prisma.adminSettings.create({ data: {} });
+  }
+  const updateData = {};
+  const fields = [
+    'siteName',
+    'maintenanceMode',
+    'registrationEnabled',
+    'emailVerificationRequired',
+    'maxBetAmount',
+    'minWithdrawalAmount',
+    'maxWithdrawalAmount',
+    'commissionRate'
+  ];
+  for (const field of fields) {
+    if (req.body[field] !== undefined) updateData[field] = req.body[field];
+  }
+  const updated = await prisma.adminSettings.update({
+    where: { id: settings.id },
+    data: updateData
+  });
   res.json({
     success: true,
-    data: { settings },
-    message: 'Settings updated successfully'
+    data: { settings: updated }
   });
 }));
 

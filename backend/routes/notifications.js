@@ -29,16 +29,9 @@ router.get('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) =
 
 // Get scheduled messages (admin only)
 router.get('/scheduled', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const scheduled = [
-    {
-      id: 'scheduled-1',
-      title: 'Maintenance Notice',
-      message: 'Scheduled maintenance tonight',
-      scheduledFor: new Date(Date.now() + 86400000), // Tomorrow
-      status: 'pending'
-    }
-  ];
-
+  const scheduled = await prisma.scheduledMessage.findMany({
+    orderBy: { scheduledFor: 'asc' }
+  });
   res.json({
     success: true,
     data: { scheduled }
@@ -47,15 +40,9 @@ router.get('/scheduled', authenticateToken, requireAdmin, asyncHandler(async (re
 
 // Get notification templates (admin only)
 router.get('/templates', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const templates = [
-    {
-      id: 'welcome',
-      name: 'Welcome Message',
-      subject: 'Welcome to Chanspaw!',
-      content: 'Thank you for joining our platform...'
-    }
-  ];
-
+  const templates = await prisma.notificationTemplate.findMany({
+    orderBy: { createdAt: 'desc' }
+  });
   res.json({
     success: true,
     data: { templates }
