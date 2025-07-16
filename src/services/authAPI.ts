@@ -119,7 +119,7 @@ export class AuthAPI {
     lastName?: string;
     phoneNumber?: string;
     dateOfBirth?: string;
-  }): Promise<APIResponse<{ userId: string; verificationRequired: boolean }>> {
+  }): Promise<APIResponse<{ user: User; accessToken: string; refreshToken?: string }>> {
     try {
       const response = await fetch(import.meta.env.VITE_API_URL + '/auth/register', {
         method: 'POST',
@@ -130,15 +130,20 @@ export class AuthAPI {
       });
 
       const data = await response.json();
-      return { 
-        success: response.ok, 
-        data: data.data,
+      // Return user and accessToken if present
+      return {
+        success: response.ok,
+        data: data.data && data.data.user && data.data.accessToken ? {
+          user: data.data.user,
+          accessToken: data.data.accessToken,
+          refreshToken: data.data.refreshToken || undefined
+        } : undefined,
         message: data.message || data.error
       };
     } catch (error) {
       console.error('Registration error:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: 'Registration failed'
       };
     }

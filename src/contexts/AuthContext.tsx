@@ -133,7 +133,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await AuthAPI.register({ username, email, password, firstName, lastName, phoneNumber, dateOfBirth });
       
-      if (response.success) {
+      if (response.success && response.data && response.data.user && response.data.accessToken) {
+        // Auto-login: store user and token
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        TokenManager.setTokens(response.data.accessToken, response.data.refreshToken || '');
+        localStorage.setItem('chanspaw_user', JSON.stringify(response.data.user));
+        // Load real wallet balance
+        await refreshWalletBalance();
+        // Reset socket with new token
+        resetSocket();
+        setTimeout(() => { testSocket(); }, 1000);
+        return { 
+          success: true, 
+          message: response.message || 'Registration successful'
+        };
+      } else if (response.success) {
         return { 
           success: true, 
           message: response.message || 'Registration successful'
