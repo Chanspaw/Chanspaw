@@ -92,7 +92,7 @@ interface Language {
 }
 
 export function ContentManagement() {
-  const [activeTab, setActiveTab] = useState<'banners' | 'rules' | 'faq' | 'blog' | 'legal' | 'languages'>('banners');
+  const [activeTab, setActiveTab] = useState<'banners' | 'announcements' | 'header' | 'footer' | 'rules' | 'blog' | 'legal' | 'languages'>('banners');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'banner' | 'rule' | 'faq' | 'blog' | 'legal'>('banner');
@@ -108,6 +108,10 @@ export function ContentManagement() {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [legalDocuments, setLegalDocuments] = useState<LegalDocument[]>([]);
+  // Add Announcements, Header, Footer to tabs
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [headerContent, setHeaderContent] = useState<any[]>([]);
+  const [footerContent, setFooterContent] = useState<any[]>([]);
 
   useEffect(() => {
     loadContentData();
@@ -202,6 +206,15 @@ export function ContentManagement() {
       } else {
         setLegalDocuments([]);
       }
+      // Announcements
+      const annRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=announcement', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
+      setAnnouncements(annRes.ok ? (await annRes.json()).data?.contents || (await annRes.json()).contents || [] : []);
+      // Header
+      const headerRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=header', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
+      setHeaderContent(headerRes.ok ? (await headerRes.json()).data?.contents || (await headerRes.json()).contents || [] : []);
+      // Footer
+      const footerRes = await fetch(import.meta.env.VITE_API_URL + '/api/content?type=footer', { headers: { 'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`, 'Content-Type': 'application/json' } });
+      setFooterContent(footerRes.ok ? (await footerRes.json()).data?.contents || (await footerRes.json()).contents || [] : []);
     } catch (error) {
       console.error('Error loading content data:', error);
     } finally {
@@ -221,15 +234,58 @@ export function ContentManagement() {
     setShowModal(true);
   };
 
-  const handleDelete = (id: string, type: string) => {
-    if (confirm('Are you sure you want to delete this item?')) {
-      console.log(`Deleting ${type} with id: ${id}`);
+  const handleDelete = async (id: string, type: string) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/content/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (res.ok) {
+        loadContentData();
+      } else {
+        alert('Failed to delete content');
+      }
+    } catch (e) {
+      alert('Error deleting content');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSave = (data: any) => {
-    console.log('Saving:', data);
-    setShowModal(false);
+  const handleSave = async (data: any) => {
+    setLoading(true);
+    try {
+      const method = editingItem ? 'PUT' : 'POST';
+      const url = editingItem ? `${import.meta.env.VITE_API_URL}/api/content/${editingItem.id}` : `${import.meta.env.VITE_API_URL}/api/content`;
+      const body = JSON.stringify({
+        ...data,
+        type: modalType,
+        status: data.status || 'active',
+      });
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+      if (res.ok) {
+        loadContentData();
+        setShowModal(false);
+      } else {
+        alert('Failed to save content');
+      }
+    } catch (e) {
+      alert('Error saving content');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderBannersTab = () => (
@@ -245,17 +301,35 @@ export function ContentManagement() {
         </button>
       </div>
 
-      <div className="text-center py-12">
-        <Image className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-white text-lg font-medium mb-2">No Banners Yet</h3>
-        <p className="text-gray-400 mb-4">Create your first homepage banner to engage users</p>
-        <button
-          onClick={() => handleAddNew('banner')}
-          className="bg-gray-700 text-white px-6 py-3 rounded-lg hover:opacity-90 flex items-center space-x-2 mx-auto"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Create First Banner</span>
-        </button>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {banners.map((banner) => (
+          <div key={banner.id} className="bg-gaming-dark rounded-lg p-6 border border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-white font-medium">{banner.title}</h4>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEdit(banner, 'banner')}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(banner.id, 'banner')}
+                  className="text-red-500 hover:text-white"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <p className="text-gray-300 text-sm mb-4">{banner.description}</p>
+            <p className="text-gray-400 text-sm">Language: {banner.language}</p>
+            <p className="text-gray-400 text-sm">Status: {banner.isActive ? 'Active' : 'Inactive'}</p>
+            <p className="text-gray-400 text-sm">Priority: {banner.priority}</p>
+            <p className="text-gray-400 text-sm">Start Date: {new Date(banner.startDate).toLocaleDateString()}</p>
+            <p className="text-gray-400 text-sm">End Date: {new Date(banner.endDate).toLocaleDateString()}</p>
+            <p className="text-gray-400 text-sm">Link: <a href={banner.link} target="_blank" rel="noopener noreferrer" className="text-gaming-accent hover:underline">{banner.link}</a></p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -364,6 +438,16 @@ export function ContentManagement() {
     </div>
   );
 
+  const renderAnnouncementsTab = () => (
+    <div> {/* Render announcements list and add/edit/delete buttons */} </div>
+  );
+  const renderHeaderTab = () => (
+    <div> {/* Render header content and add/edit/delete buttons */} </div>
+  );
+  const renderFooterTab = () => (
+    <div> {/* Render footer content and add/edit/delete buttons */} </div>
+  );
+
   const renderLanguagesTab = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -462,6 +546,9 @@ export function ContentManagement() {
           <div className="flex space-x-1">
             {[
               { id: 'banners', label: 'Banners', icon: Image },
+              { id: 'announcements', label: 'Announcements', icon: AlertCircle },
+              { id: 'header', label: 'Header', icon: Globe },
+              { id: 'footer', label: 'Footer', icon: FileText },
               { id: 'rules', label: 'Rules & FAQ', icon: BookOpen },
               { id: 'blog', label: 'Blog', icon: Newspaper },
               { id: 'legal', label: 'Legal', icon: Shield },
@@ -486,6 +573,9 @@ export function ContentManagement() {
         {/* Tab Content */}
         <div className="bg-card-gradient rounded-xl p-6 border border-gray-700">
           {activeTab === 'banners' && renderBannersTab()}
+          {activeTab === 'announcements' && renderAnnouncementsTab()}
+          {activeTab === 'header' && renderHeaderTab()}
+          {activeTab === 'footer' && renderFooterTab()}
           {activeTab === 'rules' && renderRulesTab()}
           {activeTab === 'blog' && renderBlogTab()}
           {activeTab === 'legal' && renderLegalTab()}

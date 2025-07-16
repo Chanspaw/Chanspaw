@@ -34,7 +34,7 @@ router.get('/scheduled', authenticateToken, requireAdmin, asyncHandler(async (re
   });
   res.json({
     success: true,
-    data: { scheduled }
+    data: { messages: scheduled }
   });
 }));
 
