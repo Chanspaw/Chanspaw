@@ -63,6 +63,8 @@ const apiManagementRoutes = require('./routes/api-management');
 const integrationRoutes = require('./routes/integrations');
 const performanceRoutes = require('./routes/performance');
 
+const inviteRoutes = require('./routes/invite');
+
 const { authenticateToken } = require('./middleware/auth');
 const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
 
@@ -354,6 +356,9 @@ app.use('/api/reporting', reportingRoutes);
 app.use('/api/api-management', apiManagementRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/performance', performanceRoutes);
+
+// Invite routes
+app.use('/api/invite', inviteRoutes);
 
 // Expose /metrics endpoint for Prometheus
 app.get('/metrics', async (req, res) => {

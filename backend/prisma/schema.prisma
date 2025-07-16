@@ -61,6 +61,8 @@ model User {
   role                        Role?                 @relation(fields: [roleId], references: [id])
   webhooks                    Webhook[]             @relation("WebhookAdmin")
   disputes Dispute[]
+  invitesSent                 Invite[]
+  invitesReceived             Invite[]
 
   @@map("users")
 }
@@ -764,4 +766,21 @@ model AdminSettings {
   commissionRate            Float    @default(0.05)
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
+}
+
+model Invite {
+  id         String   @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  gameType   String
+  betAmount  Float
+  matchType  String   @default("real")
+  status     String   @default("pending") // pending, accepted, declined, expired, cancelled
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  fromUser   User     @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation(fields: [toUserId], references: [id], onDelete: Cascade)
+  @@index([fromUserId])
+  @@index([toUserId])
 }
