@@ -210,7 +210,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       let response;
       if (user?.isAdmin) {
-        response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/games/active`, {
+        response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/games`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`,
             'Content-Type': 'application/json'
@@ -227,8 +227,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         let gamesArr = [];
-        if (user?.isAdmin && data.data?.games) {
-          gamesArr = data.data.games;
+        if (user?.isAdmin && Array.isArray(data.data)) {
+          gamesArr = data.data;
         } else if (Array.isArray(data.data)) {
           gamesArr = data.data;
         }
@@ -361,6 +361,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) throw new Error('Failed to join matchmaking');
     return (await res.json()).data;
   };
+
   const leaveMatchmaking = async () => {
     const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
     const res = await fetch('/api/games/matchmaking/leave', {
@@ -370,6 +371,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!res.ok) throw new Error('Failed to leave matchmaking');
     return (await res.json()).data;
   };
+
   const fetchMatchHistory = async (params: { page?: number; limit?: number; gameType?: string; result?: string; matchType?: string } = {}) => {
     const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
     const searchParams = new URLSearchParams();
