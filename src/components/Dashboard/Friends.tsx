@@ -120,9 +120,7 @@ const Friends: React.FC = () => {
 
     // Listen for invitation responses
     const handleInviteResponse = (data: { toUserId: string; accepted: boolean; gameType: string }) => {
-      if (data.accepted) {
-        addToast('success', t('friends.inviteAccepted', { game: data.gameType }));
-      } else {
+      if (!data.accepted) {
         addToast('warning', t('friends.inviteDeclined'));
       }
     };
