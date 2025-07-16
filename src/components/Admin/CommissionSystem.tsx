@@ -66,11 +66,26 @@ export function CommissionSystem() {
     setLoading(true);
     try {
       if (activeTab === 'rules') {
-        // Fetch all commission rules (assuming an endpoint exists)
-        // If not, fetch configs for all games you want to display
-        // Example: const rules = await commissionAPI.getAllCommissionConfigs();
-        // For now, leave empty or fetch per-game if you have game IDs
-        setCommissionRules([]); // TODO: Replace with real fetch
+        // Fetch commission configs for all games (replace with your actual game IDs)
+        const gameIds = ['connect_four', 'tic_tac_toe', 'dice_battle', 'diamond_hunt'];
+        const rules = await Promise.all(gameIds.map(async (id) => {
+          try {
+            const config = await commissionAPI.getCommissionConfig(id);
+            return {
+              id,
+              gameType: id,
+              gameName: config.gameName,
+              houseEdge: config.houseEdge,
+              winnerPercentage: config.winnerPercentage,
+              minBet: config.minBet,
+              maxBet: config.maxBet,
+              isActive: true
+            } as CommissionRule;
+          } catch {
+            return null;
+          }
+        }));
+        setCommissionRules(rules.filter((r): r is CommissionRule => r !== null));
       } else if (activeTab === 'earnings') {
         // Fetch commission earnings (use getTransactionHistory)
         const transactions = await commissionAPI.getTransactionHistory();
@@ -84,8 +99,8 @@ export function CommissionSystem() {
           status: tx.gameResult.status as 'pending' | 'paid' | 'cancelled',
         })));
       } else if (activeTab === 'payouts') {
-        // Fetch payouts if you have an endpoint
-        setPayouts([]); // TODO: Replace with real fetch
+        // No payouts API implemented; show message
+        setPayouts([]);
       } else if (activeTab === 'analytics') {
         // Fetch analytics
         const stats = await commissionAPI.getFinancialStats();
@@ -306,64 +321,9 @@ export function CommissionSystem() {
         {/* Payouts Tab */}
         {activeTab === 'payouts' && (
           <div className="bg-gaming-card rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Commission Payouts</h2>
-              <button className="bg-gaming-gold text-gaming-darker px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex items-center">
-                <Plus className="h-4 w-4 mr-2" />
-                Process Payout
-              </button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4">User</th>
-                    <th className="text-left py-3 px-4">Amount</th>
-                    <th className="text-left py-3 px-4">Requested</th>
-                    <th className="text-left py-3 px-4">Processed</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payouts.map((payout) => (
-                    <tr key={payout.id} className="border-b border-gray-800 hover:bg-gray-800">
-                      <td className="py-3 px-4">{payout.username}</td>
-                      <td className="py-3 px-4 text-gaming-gold font-semibold">
-                        ${payout.amount.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4">
-                        {new Date(payout.requestedAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-3 px-4">
-                        {payout.processedAt 
-                          ? new Date(payout.processedAt).toLocaleDateString()
-                          : '-'
-                        }
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`flex items-center ${getStatusColor(payout.status)}`}>
-                          {getStatusIcon(payout.status)}
-                          <span className="ml-1 capitalize">{payout.status}</span>
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex space-x-2">
-                          <button className="text-blue-400 hover:text-blue-300">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          {payout.status === 'pending' && (
-                            <button className="text-green-400 hover:text-green-300">
-                              <CheckCircle className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="flex flex-col items-center justify-center min-h-[200px]">
+              <h2 className="text-xl font-semibold mb-2">Commission Payouts</h2>
+              <p className="text-gray-400">Commission payouts are managed via the payment system. There is no direct commission payout API.</p>
             </div>
           </div>
         )}

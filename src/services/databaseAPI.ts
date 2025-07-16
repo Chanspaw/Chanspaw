@@ -1,6 +1,8 @@
 // Secure Database API for Chanspaw Platform
 // Supports PostgreSQL/MySQL with encryption, audit trails, and automatic backups
 
+import CryptoJS from 'crypto-js';
+
 // Database Configuration
 interface DatabaseConfig {
   host: string;
@@ -51,13 +53,13 @@ interface DatabaseBackup {
 // Secure Database API Class
 export class SecureDatabaseAPI {
   private static config: DatabaseConfig = {
-    host: 'localhost', // In production, use environment variables
-    port: 5432,
-    database: 'chanspaw_secure',
-    username: 'chanspaw_user',
-    password: '',
+    host: import.meta.env.VITE_DB_HOST,
+    port: Number(import.meta.env.VITE_DB_PORT),
+    database: import.meta.env.VITE_DB_NAME,
+    username: import.meta.env.VITE_DB_USER,
+    password: import.meta.env.VITE_DB_PASS,
     ssl: true,
-    encryptionKey: 'your-256-bit-encryption-key-here',
+    encryptionKey: import.meta.env.VITE_DB_ENCRYPTION_KEY,
     backupInterval: 24,
     auditLogging: true
   };
@@ -66,25 +68,22 @@ export class SecureDatabaseAPI {
 
   // Encryption Methods
   private static encrypt(data: string): EncryptedData {
-    // In production, use a proper encryption library like crypto-js
     const algorithm = 'aes-256-gcm';
-    const key = this.config.encryptionKey;
-    const iv = this.generateIV();
-    
-    // Mock encryption for development
-    const encrypted = btoa(data + '_encrypted');
-    
+    const key = CryptoJS.enc.Utf8.parse(this.config.encryptionKey);
+    const iv = CryptoJS.lib.WordArray.random(16);
+    const encrypted = CryptoJS.AES.encrypt(data, key, { iv: iv }).toString();
     return {
       encrypted,
-      iv: iv,
+      iv: iv.toString(CryptoJS.enc.Hex),
       algorithm
     };
   }
 
   private static decrypt(encryptedData: EncryptedData): string {
-    // In production, use proper decryption
-    const decrypted = atob(encryptedData.encrypted).replace('_encrypted', '');
-    return decrypted;
+    const key = CryptoJS.enc.Utf8.parse(this.config.encryptionKey);
+    const iv = CryptoJS.enc.Hex.parse(encryptedData.iv);
+    const decrypted = CryptoJS.AES.decrypt(encryptedData.encrypted, key, { iv: iv });
+    return decrypted.toString(CryptoJS.enc.Utf8);
   }
 
   private static generateIV(): string {
@@ -96,16 +95,20 @@ export class SecureDatabaseAPI {
     if (this.connection) {
       return this.connection;
     }
-
     try {
-      console.log('Connecting to secure database...');
-      // In production, use actual PostgreSQL/MySQL client
-      // const { Client } = require('pg'); // PostgreSQL
-      // const mysql = require('mysql2/promise'); // MySQL
-      
+      // Use a real PostgreSQL client in production
+      // Example: const { Client } = require('pg');
+      // this.connection = new Client({
+      //   host: this.config.host,
+      //   port: this.config.port,
+      //   database: this.config.database,
+      //   user: this.config.username,
+      //   password: this.config.password,
+      //   ssl: this.config.ssl
+      // });
+      // await this.connection.connect();
       return this.connection;
     } catch (error) {
-      console.error('Database connection failed:', error);
       throw new Error('Database connection failed');
     }
   }
@@ -187,20 +190,15 @@ export class SecureDatabaseAPI {
   static async getUserById(userId: string): Promise<{ success: boolean; user?: any; error?: string }> {
     try {
       await this.connect();
-
-      // In production, query users table
+      // Query users table
       // const result = await this.connection.query(
       //   'SELECT id, username, email, password_hash, password_iv, password_algorithm, first_name, last_name, phone_number, phone_iv, phone_algorithm, created_at, updated_at FROM users WHERE id = $1',
       //   [userId]
       // );
-
       // if (result.rows.length === 0) {
       //   return { success: false, error: 'User not found' };
       // }
-
       // const user = result.rows[0];
-
-      // // Decrypt sensitive data if needed
       // if (user.phone_number) {
       //   user.phone_number = this.decrypt({
       //     encrypted: user.phone_number,
@@ -208,10 +206,9 @@ export class SecureDatabaseAPI {
       //     algorithm: user.phone_algorithm
       //   });
       // }
-
-      return { success: true, user: {} };
+      // return { success: true, user };
+      throw new Error('Not implemented: Use backend API for user queries');
     } catch (error) {
-      console.error('Get user error:', error);
       return { success: false, error: 'Failed to get user' };
     }
   }
@@ -299,8 +296,7 @@ export class SecureDatabaseAPI {
   }): Promise<{ success: boolean; entries?: AuditEntry[]; error?: string }> {
     try {
       await this.connect();
-
-      // In production, query audit_logs table with filters
+      // Query audit_logs table with filters
       // let query = 'SELECT * FROM audit_logs WHERE 1=1';
       // const params: any[] = [];
       // let paramIndex = 1;
@@ -339,8 +335,7 @@ export class SecureDatabaseAPI {
 
       // const result = await this.connection.query(query, params);
       // return { success: true, entries: result.rows };
-
-      return { success: true, entries: [] };
+      throw new Error('Not implemented: Use backend API for audit queries');
     } catch (error) {
       console.error('Get audit trail error:', error);
       return { success: false, error: 'Failed to get audit trail' };
@@ -386,18 +381,15 @@ export class SecureDatabaseAPI {
 
   // Helper methods for security monitoring
   private static async getFailedLoginAttempts(userId: string): Promise<number> {
-    // Implementation for getting failed login attempts
-    return 0;
+    throw new Error('Not implemented: Use backend API for login attempts');
   }
 
   private static async getRecentTransactions(userId: string): Promise<any[]> {
-    // Implementation for getting recent transactions
-    return [];
+    throw new Error('Not implemented: Use backend API for transactions');
   }
 
   private static async getUniqueIPs(userId: string): Promise<string[]> {
-    // Implementation for getting unique IPs
-    return [];
+    throw new Error('Not implemented: Use backend API for IPs');
   }
 
   // Database Health Check
