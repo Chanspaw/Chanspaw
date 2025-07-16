@@ -285,6 +285,8 @@ export function ContentManagement() {
         content: contentValue,
         type: modalType,
         status: modalForm.status || (modalForm.isActive ? 'active' : 'inactive') || 'active',
+        language: modalForm.language || selectedLanguage || 'en',
+        tags: modalForm.tags || [],
       });
       const res = await fetch(url, {
         method,
