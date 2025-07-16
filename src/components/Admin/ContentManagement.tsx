@@ -641,18 +641,24 @@ export function ContentManagement() {
               >
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">Language</label>
-                  <select
-                    name="language"
-                    value={modalForm.language || selectedLanguage}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
-                  >
-                    {languages.filter(l => l.isActive).map(lang => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.name} ({lang.code.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
+                  {languages.length === 0 ? (
+                    <select disabled className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400">
+                      <option>No languages available. Please add a language first.</option>
+                    </select>
+                  ) : (
+                    <select
+                      name="language"
+                      value={modalForm.language || selectedLanguage}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-gaming-accent"
+                    >
+                      {languages.filter(l => l.isActive).map(lang => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name} ({lang.code.toUpperCase()})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="block text-gray-300 text-sm font-medium mb-2">Title</label>
