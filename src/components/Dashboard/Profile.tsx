@@ -266,6 +266,44 @@ export function Profile() {
     alert('Backup codes regeneration will be available when 2FA is properly implemented.');
   };
 
+  // 2FA setup
+  const generate2FASecret = async () => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const userId = user.id;
+    const res = await fetch('/api/admin/security/mfa/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ adminId: userId })
+    });
+    if (!res.ok) throw new Error('Failed to generate 2FA secret');
+    return (await res.json()).data;
+  };
+  const verify2FAToken = async (secret: string, tokenValue: string) => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const res = await fetch('/api/admin/security/mfa/verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ secret, token: tokenValue })
+    });
+    if (!res.ok) throw new Error('Invalid 2FA token');
+    return (await res.json()).success;
+  };
+  // Login history
+  const fetchLoginHistory = async () => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const res = await fetch(`/api/admin/audit-logs?userId=${user.id}&action=login`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch login history');
+    return (await res.json()).data.logs;
+  };
+
   return (
     <div className="w-96 bg-gaming-dark border-r border-gray-700 h-screen overflow-y-auto">
       {/* Header */}

@@ -26,23 +26,16 @@ export function useFriendNotifications() {
 
   const loadNotifications = async () => {
     if (!user?.id) return;
-    
     setIsLoading(true);
     try {
-      // For now, we'll create mock notifications based on friend requests
-      const requestsResult = await friendAPI.getReceivedRequests();
-      if (requestsResult.success && requestsResult.data) {
-        const friendRequestNotifications: FriendNotification[] = requestsResult.data.requests.map(req => ({
-          id: req.id,
-          type: 'friend_request',
-          message: `${req.sender.username} sent you a friend request`,
-          timestamp: req.createdAt,
-          read: false,
-          data: req
-        }));
-        
-        setNotifications(friendRequestNotifications);
-        setUnreadCount(friendRequestNotifications.filter(n => !n.read).length);
+      const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+      const res = await fetch('/api/notifications/user', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.data?.notifications) {
+        setNotifications((data.data.notifications as any[]));
+        setUnreadCount((data.data.notifications as any[]).filter((n: any) => !n.isRead).length);
       }
     } catch (error) {
       console.error('Error loading friend notifications:', error);
@@ -51,21 +44,23 @@ export function useFriendNotifications() {
     }
   };
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
-          ? { ...notif, read: true }
-          : notif
-      )
-    );
+  const markAsRead = async (notificationId: string) => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    await fetch(`/api/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    setNotifications(prev => prev.map(notif => notif.id === notificationId ? { ...notif, isRead: true } : notif));
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
-    );
+  const markAllAsRead = async () => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    await fetch('/api/notifications/read-all', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })));
     setUnreadCount(0);
   };
 

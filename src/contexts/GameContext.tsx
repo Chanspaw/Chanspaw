@@ -348,6 +348,43 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const joinMatchmaking = async (gameType: string, stakeAmount: number, matchType: string = 'real') => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const res = await fetch('/api/games/matchmaking/join', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ gameType, stakeAmount, matchType })
+    });
+    if (!res.ok) throw new Error('Failed to join matchmaking');
+    return (await res.json()).data;
+  };
+  const leaveMatchmaking = async () => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const res = await fetch('/api/games/matchmaking/leave', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to leave matchmaking');
+    return (await res.json()).data;
+  };
+  const fetchMatchHistory = async (params: { page?: number; limit?: number; gameType?: string; result?: string; matchType?: string } = {}) => {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.gameType) searchParams.append('gameType', params.gameType);
+    if (params.result) searchParams.append('result', params.result);
+    if (params.matchType) searchParams.append('matchType', params.matchType);
+    const res = await fetch(`/api/games/history?${searchParams.toString()}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch match history');
+    return (await res.json()).data.gameResults;
+  };
+
   return (
     <GameContext.Provider value={{
       games,
