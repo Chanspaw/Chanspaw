@@ -802,7 +802,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
 
 // Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
-  console.log('🎯 Invite accept request received:', { body: req.body, user: req.user?.id });
+  console.log('🎯 Invite accept request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
   
   try {
     const { fromUserId, gameType, matchType = 'real' } = req.body;
@@ -917,7 +917,7 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
 
 // Decline 1v1 invite (production-ready)
 router.post('/invite/decline', asyncHandler(async (req, res) => {
-  console.log('❌ Invite decline request received:', { body: req.body, user: req.user?.id });
+  console.log('❌ Invite decline request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
   
   try {
     const { fromUserId, gameType, matchType = 'real' } = req.body;
@@ -1005,7 +1005,10 @@ router.post('/match/create', asyncHandler(async (req, res) => {
 // --- Helpers for Game Logic ---
 
 function getInitialGameState(gameType, playerIds) {
-  switch (gameType) {
+  // Normalize game type to handle both uppercase and lowercase
+  const normalizedGameType = gameType.toUpperCase();
+  
+  switch (normalizedGameType) {
     case 'CHESS':
       return { 
         board: initializeChessBoard(), 
@@ -1017,12 +1020,11 @@ function getInitialGameState(gameType, playerIds) {
     case 'TIC_TAC_TOE':
       return { board: Array(9).fill(null), turnIndex: 0, players: playerIds };
     case 'TIC_TAC_TOE_5X5':
-    case 'tic_tac_toe_5x5':
-    case 'tictactoe5x5':
+    case 'TICTACTOE5X5':
       return { board: Array(25).fill(null), turnIndex: 0, players: playerIds };
     case 'CONNECT_FOUR':
       return { board: Array(6).fill().map(() => Array(7).fill(null)), turnIndex: 0, players: playerIds };
-    case 'dice_battle':
+    case 'DICE_BATTLE':
       return { 
         round: 1, 
         scores: {}, 
@@ -1033,31 +1035,33 @@ function getInitialGameState(gameType, playerIds) {
         gameOver: false,
         roundComplete: false
       };
-    case 'diamond_hunt':
+    case 'DIAMOND_HUNT':
       return { diamonds: [false, false, false, false, false], found: {}, players: playerIds, turn: playerIds[0] };
     default:
-      throw new Error('Unknown game type');
+      throw new Error(`Unknown game type: ${gameType}`);
   }
 }
 
 function validateAndApplyMove(gameType, state, move, userId, match) {
-  switch (gameType) {
+  // Normalize game type to handle both uppercase and lowercase
+  const normalizedGameType = gameType.toUpperCase();
+  
+  switch (normalizedGameType) {
     case 'CHESS':
       return chessMove(state, move, userId, match);
     case 'TIC_TAC_TOE':
       return ticTacToeMove(state, move, userId, match);
     case 'TIC_TAC_TOE_5X5':
-    case 'tic_tac_toe_5x5':
-    case 'tictactoe5x5':
+    case 'TICTACTOE5X5':
       return ticTacToe5x5Move(state, move, userId, match);
     case 'CONNECT_FOUR':
       return connectFourMove(state, move, userId, match);
-    case 'dice_battle':
+    case 'DICE_BATTLE':
       return diceBattleMove(state, move, userId, match);
-    case 'diamond_hunt':
+    case 'DIAMOND_HUNT':
       return diamondHuntMove(state, move, userId, match);
     default:
-      return { valid: false, error: 'Unknown game type' };
+      return { valid: false, error: `Unknown game type: ${gameType}` };
   }
 }
 
@@ -1533,7 +1537,10 @@ function checkTicTacToe5x5Winner(board) {
 function simulateGame(gameType, gameData) {
   const random = Math.random();
   
-  switch (gameType) {
+  // Normalize game type to handle both uppercase and lowercase
+  const normalizedGameType = gameType.toUpperCase();
+  
+  switch (normalizedGameType) {
     case 'CHESS':
       // Simulation du Chess
       if (random < 0.3) {
@@ -1600,7 +1607,7 @@ function simulateGame(gameType, gameData) {
         };
       }
       
-    case 'dice_battle':
+    case 'DICE_BATTLE':
       // Simulation du Dice Battle
       const playerRoll = Math.floor(Math.random() * 6) + 1;
       const opponentRoll = Math.floor(Math.random() * 6) + 1;
@@ -1637,7 +1644,7 @@ function simulateGame(gameType, gameData) {
         };
       }
       
-    case 'diamond_hunt':
+    case 'DIAMOND_HUNT':
       // Simulation du Diamond Hunt
       const diamonds = Math.floor(random * 10);
       if (diamonds >= 7) {
@@ -1673,7 +1680,7 @@ function simulateGame(gameType, gameData) {
       return {
         result: 'LOSS',
         multiplier: 0.0,
-        details: { message: 'Unknown game type' }
+        details: { message: `Unknown game type: ${gameType}` }
       };
   }
 }
@@ -1682,5 +1689,11 @@ function simulateGame(gameType, gameData) {
 async function handleMatchEnd({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, matchType, isDraw }) {
   await payoutMatch({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, currency: matchType, isDraw });
 }
+
+// Catch-all route for debugging
+router.use('*', (req, res) => {
+  console.log('🔍 Games router catch-all:', { method: req.method, path: req.path, originalUrl: req.originalUrl });
+  res.status(404).json({ success: false, error: 'Route not found in games router' });
+});
 
 module.exports = router; 

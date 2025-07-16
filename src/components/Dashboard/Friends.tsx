@@ -574,7 +574,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
               <h3 className="text-lg font-bold text-white">{t('friends.gameInvitation')}</h3>
             </div>
             <p className="text-gray-300 mb-4 text-center">
-              <span className="font-semibold text-white">{gameInvitation.fromUsername}</span> {t('friends.invitedYouToPlay', { game: gameInvitation.gameType })}
+              <span className="font-semibold text-white">{gameInvitation.fromUsername}</span> {t('friends.invitedYouToPlay', { user: gameInvitation.fromUsername, game: gameInvitation.gameType })}
             </p>
             <div className="flex gap-3">
               <button
