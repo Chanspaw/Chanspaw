@@ -31,16 +31,16 @@ router.get('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res
 
 // Create new content
 router.post('/', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { type, title, body, mediaUrl, status, publishAt, expireAt } = req.body;
-  const content = await prisma.content.create({
-    data: { type, title, body, mediaUrl, status, publishAt, expireAt }
+  const { type, title, content, mediaUrl, status, publishAt, expireAt } = req.body;
+  const newContent = await prisma.content.create({
+    data: { type, title, content, mediaUrl, status, publishAt, expireAt }
   });
-  res.json({ success: true, data: content });
+  res.json({ success: true, data: newContent });
 }));
 
 // Update content (with versioning)
 router.put('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res) => {
-  const { title, body, mediaUrl, status, publishAt, expireAt } = req.body;
+  const { title, content, mediaUrl, status, publishAt, expireAt } = req.body;
   // Save previous version
   const prev = await prisma.content.findUnique({ where: { id: req.params.id } });
   if (prev) {
@@ -48,7 +48,7 @@ router.put('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res
       data: {
         contentId: prev.id,
         title: prev.title,
-        body: prev.body,
+        contentText: prev.content,
         mediaUrl: prev.mediaUrl
       }
     });
@@ -56,7 +56,7 @@ router.put('/:id', authenticateToken, requireAdmin, asyncHandler(async (req, res
   // Update content
   const updated = await prisma.content.update({
     where: { id: req.params.id },
-    data: { title, body, mediaUrl, status, publishAt, expireAt }
+    data: { title, content, mediaUrl, status, publishAt, expireAt }
   });
   res.json({ success: true, data: updated });
 }));
@@ -75,7 +75,7 @@ router.post('/:id/rollback/:versionId', authenticateToken, requireAdmin, asyncHa
     where: { id: req.params.id },
     data: {
       title: version.title,
-      body: version.body,
+      content: version.contentText,
       mediaUrl: version.mediaUrl
     }
   });
