@@ -102,30 +102,31 @@ app.post('/api/game/move', (req, res) => {
   if (winResult.gameOver) {
     gameState.status = 'finished';
     gameState.winner = winResult.winner;
-  }
-
-  activeGames.set(matchId, gameState);
-
-  // Payout logic (same as Connect Four)
-  if (gameState.status === 'finished' && gameState.winner) {
     (async () => {
       try {
         const payoutRes = await fetch('http://localhost:3002/api/payout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            winnerId: gameState.winner,
-            stake: gameState.stake,
-            walletMode: gameState.walletMode
+            matchId: gameState.matchId,
+            gameType: 'chess',
+            player1Id: gameState.player1,
+            player2Id: gameState.player2,
+            winnerId: winResult.winner,
+            betAmount: gameState.stake,
+            currency: gameState.walletMode,
+            isDraw: winResult.winner == null
           })
         });
         const payoutData = await payoutRes.json();
-        console.log('Chess payout result', { matchId: gameState.matchId, winnerId: gameState.winner, payoutData });
+        console.log('Chess payout result', { matchId: gameState.matchId, winnerId: winResult.winner, payoutData });
       } catch (err) {
-        console.error('Chess payout error', { matchId: gameState.matchId, winnerId: gameState.winner, error: err.message });
+        console.error('Chess payout error', { matchId: gameState.matchId, winnerId: winResult.winner, error: err.message });
       }
     })();
   }
+
+  activeGames.set(matchId, gameState);
 
   res.json({
     success: true,
@@ -192,8 +193,29 @@ io.on('connection', (socket) => {
       if (winResult.gameOver) {
         gameState.status = 'finished';
         gameState.winner = winResult.winner;
+        (async () => {
+          try {
+            const payoutRes = await fetch('http://localhost:3002/api/payout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                matchId: gameState.matchId,
+                gameType: 'chess',
+                player1Id: gameState.player1,
+                player2Id: gameState.player2,
+                winnerId: winResult.winner,
+                betAmount: gameState.stake,
+                currency: gameState.walletMode,
+                isDraw: winResult.winner == null
+              })
+            });
+            const payoutData = await payoutRes.json();
+            console.log('Chess payout result', { matchId: gameState.matchId, winnerId: winResult.winner, payoutData });
+          } catch (err) {
+            console.error('Chess payout error', { matchId: gameState.matchId, winnerId: winResult.winner, error: err.message });
+          }
+        })();
       }
-
       activeGames.set(matchId, gameState);
       
       io.to(matchId).emit('moveMade', {
@@ -201,27 +223,6 @@ io.on('connection', (socket) => {
         moveResult,
         winResult
       });
-
-      // Payout logic (same as Connect Four)
-      if (gameState.status === 'finished' && gameState.winner) {
-        (async () => {
-          try {
-            const payoutRes = await fetch('http://localhost:3002/api/payout', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                winnerId: gameState.winner,
-                stake: gameState.stake,
-                walletMode: gameState.walletMode
-              })
-            });
-            const payoutData = await payoutRes.json();
-            console.log('Chess payout result', { matchId: gameState.matchId, winnerId: gameState.winner, payoutData });
-          } catch (err) {
-            console.error('Chess payout error', { matchId: gameState.matchId, winnerId: gameState.winner, error: err.message });
-          }
-        })();
-      }
     } else {
       socket.emit('error', { message: moveResult.error });
     }
@@ -329,24 +330,33 @@ function checkChessWinCondition(gameState) {
   // Simplified win condition - check for king capture
   let whiteKing = false;
   let blackKing = false;
-  
+  let pieceCount = 0;
+  let onlyKings = true;
+
   for (let rank = 0; rank < 8; rank++) {
     for (let file = 0; file < 8; file++) {
       const piece = gameState.board[rank][file];
-      if (piece && piece.type === 'king') {
-        if (piece.color === 'white') whiteKing = true;
-        if (piece.color === 'black') blackKing = true;
+      if (piece) {
+        pieceCount++;
+        if (piece.type !== 'king') onlyKings = false;
+        if (piece.type === 'king') {
+          if (piece.color === 'white') whiteKing = true;
+          if (piece.color === 'black') blackKing = true;
+        }
       }
     }
   }
-  
+
   if (!whiteKing) {
     return { gameOver: true, winner: gameState.player2, reason: 'checkmate' };
   }
   if (!blackKing) {
     return { gameOver: true, winner: gameState.player1, reason: 'checkmate' };
   }
-  
+  // Draw: only kings left or 100 moves (simplified)
+  if (onlyKings || (gameState.moveHistory && gameState.moveHistory.length >= 100)) {
+    return { gameOver: true, winner: null, reason: 'draw' };
+  }
   return { gameOver: false };
 }
 
