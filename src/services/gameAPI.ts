@@ -61,7 +61,7 @@ interface MatchmakingQueue {
 
 // Real Game API
 export class GameAPI {
-  private static baseURL = 'https://api.chanspaw.com/games';
+  private static baseURL = import.meta.env.VITE_API_URL + '/api/games';
 
   // In-memory storage for development
   private static activeMatches: Map<string, GameMatch> = new Map();
@@ -722,55 +722,39 @@ export class GameAPI {
   }
 
   // Public API methods for statistics
-  static async getGameStats(userId: string): Promise<{ success: boolean; stats?: any; error?: string }> {
-    try {
-      // Mock statistics
-      const stats = {
-        totalGames: Math.floor(Math.random() * 100) + 50,
-        wins: Math.floor(Math.random() * 40) + 20,
-        losses: Math.floor(Math.random() * 30) + 15,
-        draws: Math.floor(Math.random() * 10) + 5,
-        totalWinnings: Math.floor(Math.random() * 1000) + 500,
-        favoriteGame: ['connect_four', 'tic_tac_toe', 'dice_battle', 'diamond_hunt'][Math.floor(Math.random() * 4)],
-        winRate: Math.floor(Math.random() * 30) + 50
-      };
-
-      return { success: true, stats };
-    } catch (error) {
-      console.error('Error getting game stats:', error);
-      return { success: false, error: 'Failed to get game stats' };
-    }
+  static async getGameStats(params: { timeRange?: string; matchType?: string } = {}): Promise<{ success: boolean; stats?: any; error?: string }> {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const searchParams = new URLSearchParams();
+    if (params.timeRange) searchParams.append('timeRange', params.timeRange);
+    if (params.matchType) searchParams.append('matchType', params.matchType);
+    const response = await fetch(`${this.baseURL}/stats?${searchParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) return { success: false, error: data.error || 'Failed to fetch game stats' };
+    return { success: true, stats: data.data };
   }
 
-  static async getGameHistory(userId: string, limit: number = 20): Promise<{ success: boolean; matches?: GameMatch[]; error?: string }> {
-    try {
-      // Mock game history
-      const matches: GameMatch[] = [];
-      for (let i = 0; i < limit; i++) {
-        matches.push({
-          id: `history-${i}`,
-          gameType: ['connect_four', 'tic_tac_toe', 'dice_battle', 'diamond_hunt'][Math.floor(Math.random() * 4)] as any,
-          player1: { userId: 'user1', username: 'Player1', betAmount: 10, ready: true, joinedAt: new Date() },
-          player2: { userId: 'user2', username: 'Player2', betAmount: 10, ready: true, joinedAt: new Date() },
-          status: 'completed',
-          totalPot: 20,
-          platformFee: 2,
-          winnerAmount: 18,
-          gameData: {},
-          winner: Math.random() > 0.5 ? 'user1' : 'user2',
-          loser: Math.random() > 0.5 ? 'user2' : 'user1',
-          createdAt: new Date(Date.now() - Math.random() * 86400000 * 30),
-          startedAt: new Date(),
-          completedAt: new Date(),
-          matchType: Math.random() > 0.5 ? 'real' : 'virtual'
-        });
+  static async getGameHistory(params: { page?: number; limit?: number; gameType?: string; result?: string; matchType?: string } = {}): Promise<{ success: boolean; matches?: GameMatch[]; error?: string }> {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const searchParams = new URLSearchParams();
+    if (params.page) searchParams.append('page', params.page.toString());
+    if (params.limit) searchParams.append('limit', params.limit.toString());
+    if (params.gameType) searchParams.append('gameType', params.gameType);
+    if (params.result) searchParams.append('result', params.result);
+    if (params.matchType) searchParams.append('matchType', params.matchType);
+    const response = await fetch(`${this.baseURL}/history?${searchParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-
-      return { success: true, matches };
-    } catch (error) {
-      console.error('Error getting game history:', error);
-      return { success: false, error: 'Failed to get game history' };
-    }
+    });
+    const data = await response.json();
+    if (!response.ok) return { success: false, error: data.error || 'Failed to fetch game history' };
+    return { success: true, matches: data.data.gameResults };
   }
 
   static async getGameConfigs(): Promise<{ success: boolean; configs?: GameConfig[]; error?: string }> {
@@ -785,17 +769,16 @@ export class GameAPI {
 
   static async getAdminStats(): Promise<{ success: boolean; stats?: any; error?: string }> {
     try {
-      const stats = {
-        totalMatches: this.activeMatches.size + Math.floor(Math.random() * 1000),
-        activeMatches: this.activeMatches.size,
-        totalRevenue: Math.floor(Math.random() * 10000) + 5000,
-        platformFees: Math.floor(Math.random() * 1000) + 500,
-        averageBetSize: Math.floor(Math.random() * 50) + 25,
-        popularGame: 'connect_four',
-        userEngagement: Math.floor(Math.random() * 20) + 80
-      };
-
-      return { success: true, stats };
+      const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+      const response = await fetch(`${this.baseURL}/admin/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) return { success: false, error: data.error || 'Failed to fetch admin stats' };
+      return { success: true, stats: data.data };
     } catch (error) {
       console.error('Error getting admin stats:', error);
       return { success: false, error: 'Failed to get admin stats' };
