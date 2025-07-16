@@ -3,6 +3,7 @@ import { FaSearch, FaUserPlus, FaUserCheck, FaUserTimes, FaGamepad, FaTimes, FaC
 import { debounce } from "lodash";
 import io, { Socket } from "socket.io-client";
 import { useTranslation } from 'react-i18next';
+import { GameAPI } from '../../services/gameAPI';
 
 // Types
 interface User {
@@ -16,6 +17,8 @@ interface Invite {
   to: User;
   status: "pending" | "accepted" | "declined";
   matchId?: string;
+  gameType?: string;
+  betAmount?: number;
 }
 
 // Replace with your actual API base URL and socket URL
@@ -32,6 +35,11 @@ const PlayerSearchInvite: React.FC = () => {
   const [matchStarting, setMatchStarting] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const { t } = useTranslation();
+  const [games, setGames] = useState<any[]>([]);
+  const [selectedGame, setSelectedGame] = useState<any>(null);
+  const [betAmount, setBetAmount] = useState<number>(10);
+  const [userBalances, setUserBalances] = useState<{ real_balance: number; virtual_balance: number }>({ real_balance: 0, virtual_balance: 0 });
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Fetch current user info (assume /api/auth/me returns { id, username })
   useEffect(() => {
@@ -39,6 +47,21 @@ const PlayerSearchInvite: React.FC = () => {
       .then((res) => res.json())
       .then((data) => setCurrentUser(data))
       .catch(() => setCurrentUser(null));
+  }, []);
+
+  // Fetch games and user balances on mount
+  useEffect(() => {
+    (async () => {
+      const res = await GameAPI.getGameConfigs();
+      if (res.success && res.configs) setGames(res.configs);
+      // Fetch user balances
+      const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+      const response = await fetch('/api/wallet/balance', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (response.ok) {
+        const data = await response.json();
+        setUserBalances(data.data);
+      }
+    })();
   }, []);
 
   // Setup socket.io
@@ -89,12 +112,22 @@ const PlayerSearchInvite: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  // Send invite
+  // Send invite with game and amount
   const sendInvite = (user: User) => {
-    if (!socketRef.current || !currentUser) return;
-    socketRef.current.emit("invite:send", { to: user.id });
+    if (!socketRef.current || !currentUser || !selectedGame) return;
+    if (betAmount < selectedGame.minBet || betAmount > selectedGame.maxBet) {
+      setInviteError(`Bet must be between ${selectedGame.minBet} and ${selectedGame.maxBet}`);
+      return;
+    }
+    const balance = selectedGame.type === 'real' ? userBalances.real_balance : userBalances.virtual_balance;
+    if (balance < betAmount) {
+      setInviteError('Insufficient balance');
+      return;
+    }
+    setInviteError(null);
+    socketRef.current.emit('invite:send', { to: user.id, gameType: selectedGame.id, betAmount });
     setInvitesSent((prev) => [
-      { from: currentUser, to: user, status: "pending" },
+      { from: currentUser, to: user, status: 'pending', gameType: selectedGame.id, betAmount },
       ...prev.filter(i => i.to.id !== user.id),
     ]);
   };
@@ -106,11 +139,13 @@ const PlayerSearchInvite: React.FC = () => {
     setInvitesSent((prev) => prev.filter(i => i.to.id !== user.id));
   };
 
-  // Accept invite
-  const acceptInvite = (from: User) => {
+  // Accept invite only if enough balance
+  const acceptInvite = (invite: any) => {
     if (!socketRef.current) return;
-    socketRef.current.emit("invite:accept", { from: from.id });
-    setInvitesReceived((prev) => prev.filter(i => i.from.id !== from.id));
+    const balance = invite.gameType === 'real' ? userBalances.real_balance : userBalances.virtual_balance;
+    if (balance < invite.betAmount) return;
+    socketRef.current.emit('invite:accept', { from: invite.from.id, gameType: invite.gameType, betAmount: invite.betAmount });
+    setInvitesReceived((prev) => prev.filter(i => i.from.id !== invite.from.id));
   };
 
   // Decline invite
@@ -133,6 +168,34 @@ const PlayerSearchInvite: React.FC = () => {
       <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-white">
         <FaUserPlus className="text-gaming-accent" /> {t('playerSearch.title')} & {t('invite.1v1')}
       </h2>
+      {/* Game and amount selection */}
+      <div className="mb-4 flex gap-2 items-center">
+        <select
+          className="bg-gaming-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-gaming-accent focus:outline-none text-sm"
+          value={selectedGame?.id || ''}
+          onChange={e => {
+            const g = games.find(g => g.id === e.target.value);
+            setSelectedGame(g);
+            setBetAmount(g?.minBet || 10);
+          }}
+        >
+          <option value="">{t('invite.selectGame')}</option>
+          {games.map(g => (
+            <option key={g.id} value={g.id}>{g.name} (${g.minBet}-{g.maxBet})</option>
+          ))}
+        </select>
+        <input
+          type="number"
+          className="bg-gaming-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-gaming-accent focus:outline-none text-sm w-28"
+          min={selectedGame?.minBet || 1}
+          max={selectedGame?.maxBet || 1000}
+          value={betAmount}
+          onChange={e => setBetAmount(Number(e.target.value))}
+          placeholder={t('invite.amount')}
+          disabled={!selectedGame}
+        />
+      </div>
+      {inviteError && <div className="text-red-400 mb-2">{inviteError}</div>}
       <div className="mb-4 flex items-center gap-2">
         <input
           className="flex-1 bg-gaming-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-gaming-accent focus:outline-none text-sm"
@@ -226,27 +289,35 @@ const PlayerSearchInvite: React.FC = () => {
           <div className="text-gray-400 text-sm">{t('invite.noInvitesReceived')}</div>
         ) : (
           <ul>
-            {invitesReceived.map(invite => (
-              <li key={invite.from.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-b-0">
-                <span className="flex items-center gap-2">
-                  <span className="text-white">{invite.from.username}</span>
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
-                    onClick={() => acceptInvite(invite.from)}
-                  >
-                    <FaCheck /> {t('invite.accept')}
-                  </button>
-                  <button
-                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
-                    onClick={() => declineInvite(invite.from)}
-                  >
-                    <FaTimes /> {t('invite.decline')}
-                  </button>
-                </div>
-              </li>
-            ))}
+            {invitesReceived.map(invite => {
+              const balance = invite.gameType === 'real' ? userBalances.real_balance : userBalances.virtual_balance;
+              const bet = invite.betAmount ?? 0;
+              const canAccept = balance >= bet;
+              return (
+                <li key={invite.from.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-b-0">
+                  <span className="flex flex-col gap-1">
+                    <span className="text-white">{invite.from.username}</span>
+                    <span className="text-xs text-gray-400">{invite.gameType} - ${bet}</span>
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      className={`px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white rounded text-xs flex items-center gap-1 ${!canAccept ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      onClick={() => canAccept && acceptInvite(invite)}
+                      disabled={!canAccept}
+                      title={!canAccept ? t('invite.insufficientBalance') : ''}
+                    >
+                      <FaCheck /> {t('invite.accept')}
+                    </button>
+                    <button
+                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white rounded text-xs flex items-center gap-1"
+                      onClick={() => declineInvite(invite.from)}
+                    >
+                      <FaTimes /> {t('invite.decline')}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
