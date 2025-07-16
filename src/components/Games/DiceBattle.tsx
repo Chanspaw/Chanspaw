@@ -12,7 +12,8 @@ import { getGameId } from '../../utils/gameId';
 import { MatchChat } from './MatchChat';
 
 interface DiceBattleProps {
-  onGameEnd: (winner: string) => void;
+  onGameEnd?: (winner: string) => void;
+  matchId?: string;
 }
 
 interface RoundResult {
@@ -52,13 +53,13 @@ const DICE_BATTLE_CONFIG = {
   winCondition: 3
 };
 
-export function DiceBattle({ onGameEnd }: DiceBattleProps) {
+export function DiceBattle({ onGameEnd, matchId }: DiceBattleProps) {
   const { user } = useAuth();
   const { walletMode } = useWalletMode();
   
   // Game state
   const [gameStatus, setGameStatus] = useState<'menu' | 'waiting' | 'playing' | 'finished'>('menu');
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(matchId || null);
   const [currentStake, setCurrentStake] = useState(0);
   const [isInWaitingRoom, setIsInWaitingRoom] = useState(false);
   const [showBetModal, setShowBetModal] = useState(false);
@@ -283,7 +284,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
               const finalWinner = newScores[user?.id || ''] >= DICE_BATTLE_CONFIG.winCondition ? user?.id || '' : opponentId || '';
               setGameResult({ winner: finalWinner, finalScore: newScores, reason: finalWinner === user?.id ? 'You won the match!' : 'Opponent won the match!' });
               setGameState(prev => ({ ...prev, gameOver: true, winner: finalWinner }));
-              onGameEnd(finalWinner);
+              onGameEnd && onGameEnd(finalWinner);
             } else {
               setGameState(prev => ({ ...prev, round: prev.round + 1, playerRolls: {}, roundScores: newScores }));
               setPlayerDice([1, 1]);
@@ -447,7 +448,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
       setShowResultModal(true);
       
       // Call onGameEnd callback
-      onGameEnd(data.winner || '');
+      onGameEnd && onGameEnd(data.winner || '');
     };
 
     const onTimeout = (data: any) => {
@@ -466,7 +467,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
           isDraw: false
         });
         setShowResultModal(true);
-        onGameEnd(data.opponentId);
+        onGameEnd && onGameEnd(data.opponentId);
       } else {
         // Opponent timed out
         setGameResult({
@@ -481,7 +482,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
           isDraw: false
         });
         setShowResultModal(true);
-        onGameEnd(user?.id || '');
+        onGameEnd && onGameEnd(user?.id || '');
       }
     };
 

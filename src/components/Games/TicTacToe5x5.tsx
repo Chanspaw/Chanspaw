@@ -13,7 +13,8 @@ import { getGameId } from '../../utils/gameId';
 import { MatchChat } from './MatchChat';
 
 interface TicTacToe5x5Props {
-  onGameEnd: (winner: string) => void;
+  onGameEnd?: (winner: string) => void;
+  matchId?: string;
 }
 
 // Helper to convert 1D board to 2D 5x5
@@ -24,7 +25,7 @@ function to2DBoard(board: any): (string | null)[][] {
   return board;
 }
 
-export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
+export function TicTacToe5x5({ onGameEnd, matchId }: TicTacToe5x5Props) {
   const { user } = useAuth();
   const { walletMode } = useWalletMode();
   const GAME_ID = 'tictactoe5x5';
@@ -36,7 +37,7 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
   const [gameStatus, setGameStatus] = useState<'menu' | 'waiting' | 'playing' | 'finished'>('menu');
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(matchId || null);
   const [currentStake, setCurrentStake] = useState(0);
   const [isInWaitingRoom, setIsInWaitingRoom] = useState(false);
   const [showBetModal, setShowBetModal] = useState(false);
@@ -572,32 +573,21 @@ export function TicTacToe5x5({ onGameEnd }: TicTacToe5x5Props) {
 
   const handleGameEnd = (winnerId: string, result: string) => {
     setGameOver(true);
-    setWinner(winnerId);
     setGameStatus('finished');
     setIsMyTurn(false);
-    // Show result modal for all modes
-    if (winnerId === 'draw') {
-      setResultModalData({ isWin: false, isDraw: true });
-    } else if (winnerId === user?.id) {
+    loadUserBalances();
+    
+    if (winnerId === user?.id) {
       setResultModalData({ isWin: true, isDraw: false });
+    } else if (winnerId === 'draw') {
+      setResultModalData({ isWin: false, isDraw: true });
     } else {
       setResultModalData({ isWin: false, isDraw: false });
     }
     setShowResultModal(true);
-    if (isPracticeMode) return;
-    const socket = getSocket();
-    if (socket && currentMatchId) {
-      socket.emit('gameEnd', {
-        matchId: currentMatchId,
-        winner: winnerId,
-        gameType: 'tictactoe5x5',
-        result,
-        opponentId
-      });
-    }
-    if (onGameEnd) {
-      onGameEnd(winnerId);
-    }
+    
+    // Call onGameEnd callback if provided
+    onGameEnd && onGameEnd(winnerId);
   };
 
   const checkForWinner = () => {

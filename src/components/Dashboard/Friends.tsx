@@ -14,7 +14,11 @@ interface OnlineFriend extends Friend {
   status: 'online' | 'offline';
 }
 
-const Friends: React.FC = () => {
+interface FriendsProps {
+  onNavigateToGame?: (gameType: string, matchId: string) => void;
+}
+
+const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
   const { user } = useAuth();
   const { addToast, ToastContainer } = useToast();
   const [friends, setFriends] = useState<OnlineFriend[]>([]);
@@ -190,9 +194,21 @@ const Friends: React.FC = () => {
         }
         return updated;
       });
-      setTimeout(() => {
-        window.location.href = `/match/${data.matchId}`;
-      }, 100);
+      
+      // Use the app's navigation system instead of window.location.href
+      if (onNavigateToGame && data.matchId && data.gameType) {
+        // Map backend game types to frontend game IDs
+        const gameTypeMap: { [key: string]: string } = {
+          'chess': 'chess',
+          'connect_four': 'connect-four',
+          'tic_tac_toe': 'tictactoe-5x5',
+          'dice_battle': 'dice-battle',
+          'diamond_hunt': 'diamond-hunt'
+        };
+        
+        const frontendGameId = gameTypeMap[data.gameType] || data.gameType;
+        onNavigateToGame(frontendGameId, data.matchId);
+      }
     });
 
     // Listen for invite timeout (if implemented)
@@ -215,7 +231,7 @@ const Friends: React.FC = () => {
       socket.off('matchFound');
       socket.off('invite:timeout');
     };
-  }, [user?.id, addToast, t]);
+  }, [user?.id, addToast, t, onNavigateToGame]);
 
   const loadFriends = async () => {
     if (!user?.id) return;

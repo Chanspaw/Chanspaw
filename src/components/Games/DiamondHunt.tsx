@@ -13,9 +13,10 @@ import { MatchChat } from './MatchChat';
 
 interface DiamondHuntProps {
   onGameEnd?: (result: { winner: string; stake: number; result: string }) => void;
+  matchId?: string;
 }
 
-export function DiamondHunt({ onGameEnd }: DiamondHuntProps) {
+export function DiamondHunt({ onGameEnd, matchId }: DiamondHuntProps) {
   const { user } = useAuth();
   const { walletMode } = useWalletMode();
   const [gameStatus, setGameStatus] = useState<'menu' | 'waiting' | 'playing' | 'finished'>('menu');
@@ -26,7 +27,7 @@ export function DiamondHunt({ onGameEnd }: DiamondHuntProps) {
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(30);
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(matchId || null);
   const [opponentId, setOpponentId] = useState<string | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [turnTimer, setTurnTimer] = useState(30);

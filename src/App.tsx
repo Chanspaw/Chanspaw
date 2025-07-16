@@ -52,13 +52,14 @@ import { Settings } from './components/Dashboard/Settings';
 import { Footer } from './components/Layout/Footer';
 import { Chess } from './components/Games/Chess';
 
-function GameSection({ activeGame, onPlayGame, onBackToGames }: { 
+function GameSection({ activeGame, onPlayGame, onBackToGames, currentMatchId }: { 
   activeGame: string | null; 
   onPlayGame: (gameId: string) => void;
   onBackToGames: () => void;
+  currentMatchId?: string | null;
 }) {
   const { games } = useGame();
-  const { user, updateBalance, refreshWalletBalance } = useAuth();
+  const { user, refreshWalletBalance } = useAuth();
 
   const handleGameEnd = (result: { winner: string; stake: number; result: string } | string) => {
     if (user) {
@@ -73,15 +74,15 @@ function GameSection({ activeGame, onPlayGame, onBackToGames }: {
   const renderGame = () => {
     switch (activeGame) {
       case 'chess':
-        return <Chess onGameEnd={handleGameEnd} />;
+        return <Chess onGameEnd={handleGameEnd} matchId={currentMatchId || undefined} />;
       case 'diamond-hunt':
-        return <DiamondHunt onGameEnd={handleGameEnd} />;
+        return <DiamondHunt onGameEnd={handleGameEnd} matchId={currentMatchId || undefined} />;
       case 'connect-four':
-        return <ConnectFour />;
+        return <ConnectFour matchId={currentMatchId || undefined} />;
       case 'dice-battle':
-        return <DiceBattle onGameEnd={(winner: string) => handleGameEnd(winner)} />;
+        return <DiceBattle onGameEnd={(winner: string) => handleGameEnd(winner)} matchId={currentMatchId || undefined} />;
       case 'tictactoe-5x5':
-        return <TicTacToe5x5 onGameEnd={(winner: string) => handleGameEnd(winner)} />;
+        return <TicTacToe5x5 onGameEnd={(winner: string) => handleGameEnd(winner)} matchId={currentMatchId || undefined} />;
       case 'matchmaking-waiting-room':
         return <MatchmakingWaitingRoom 
           gameType="chess"
@@ -166,6 +167,7 @@ function MainApp() {
   const [isInAdminPanel, setIsInAdminPanel] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeGame, setActiveGame] = useState<string | null>(null);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
 
   if (!user) {
     return <AuthPage />;
@@ -199,6 +201,13 @@ function MainApp() {
 
   const handleBackToGames = () => {
     setActiveGame(null);
+    setCurrentMatchId(null);
+  };
+
+  const handleNavigateToGame = (gameType: string, matchId: string) => {
+    setActiveGame(gameType);
+    setCurrentMatchId(matchId);
+    setActiveSection('games');
   };
 
   const renderContent = () => {
@@ -210,13 +219,13 @@ function MainApp() {
       case 'play-games':
         return <PlayGames onPlayGame={handlePlayGame} />;
       case 'games':
-        return <GameSection activeGame={activeGame} onPlayGame={handlePlayGame} onBackToGames={handleBackToGames} />;
+        return <GameSection activeGame={activeGame} onPlayGame={handlePlayGame} onBackToGames={handleBackToGames} currentMatchId={currentMatchId} />;
       case 'wallet':
         return <WalletDashboard />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'friends':
-        return <Friends />;
+        return <Friends onNavigateToGame={handleNavigateToGame} />;
       case 'support':
         return <SupportClient />;
       case 'settings':

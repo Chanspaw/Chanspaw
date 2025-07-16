@@ -11,7 +11,11 @@ import { GameControls } from '../UI/GameControls';
 import { getGameId } from '../../utils/gameId';
 import { MatchChat } from './MatchChat';
 
-export function ConnectFour() {
+interface ConnectFourProps {
+  matchId?: string;
+}
+
+export function ConnectFour({ matchId }: ConnectFourProps) {
   const { user } = useAuth();
   const { walletMode } = useWalletMode();
   const [board, setBoard] = useState<number[][]>(
@@ -20,7 +24,7 @@ export function ConnectFour() {
   const [currentPlayer, setCurrentPlayer] = useState<'player' | 'opponent'>('player');
   const [gameOver, setGameOver] = useState(false);
   const [gameStatus, setGameStatus] = useState<'menu' | 'waiting' | 'playing' | 'finished'>('menu');
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(matchId || null);
   const [currentStake, setCurrentStake] = useState(0);
   const [showBetModal, setShowBetModal] = useState(false);
   const [showResultModal, setShowResultModal] = useState(false);
