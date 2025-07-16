@@ -64,7 +64,7 @@ const integrationRoutes = require('./routes/integrations');
 const performanceRoutes = require('./routes/performance');
 
 const { authenticateToken } = require('./middleware/auth');
-const { errorHandler } = require('./middleware/errorHandler');
+const { errorHandler, asyncHandler } = require('./middleware/errorHandler');
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
