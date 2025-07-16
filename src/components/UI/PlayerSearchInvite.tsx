@@ -196,6 +196,7 @@ const PlayerSearchInvite: React.FC = () => {
         />
       </div>
       {inviteError && <div className="text-red-400 mb-2">{inviteError}</div>}
+      {/* Search and results */}
       <div className="mb-4 flex items-center gap-2">
         <input
           className="flex-1 bg-gaming-dark text-white px-3 py-2 rounded border border-gray-600 focus:border-gaming-accent focus:outline-none text-sm"
@@ -226,27 +227,20 @@ const PlayerSearchInvite: React.FC = () => {
                     <FaTimes /> {t('invite.cancel')}
                   </button>
                 ) : (
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
-                      onClick={() => sendInvite(user)}
-                    >
-                      <FaUserPlus /> {t('invite.invite')}
-                    </button>
-                    <button
-                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
-                      onClick={() => startMatch(user)}
-                      disabled={matchStarting === "pending"}
-                    >
-                      <FaGamepad /> {matchStarting === "pending" ? t('invite.starting') : t('invite.instantMatch')}
-                    </button>
-                  </div>
+                  <button
+                    className="px-3 py-1.5 bg-gradient-to-r from-emerald-400 to-blue-400 text-white hover:opacity-90 transform duration-200 rounded text-xs flex items-center gap-1"
+                    onClick={() => sendInvite(user)}
+                    disabled={!selectedGame || betAmount < (selectedGame?.minBet || 1) || betAmount > (selectedGame?.maxBet || 1000)}
+                  >
+                    <FaUserPlus /> {t('invite.invite')}
+                  </button>
                 )}
               </li>
             ))}
           </ul>
         </div>
       )}
+      {/* Sent invites */}
       <div className="mb-4">
         <div className="font-semibold mb-1 text-white">{t('invite.sent')}:</div>
         {invitesSent.length === 0 ? (
@@ -283,6 +277,7 @@ const PlayerSearchInvite: React.FC = () => {
           </ul>
         )}
       </div>
+      {/* Received invites */}
       <div className="mb-4">
         <div className="font-semibold mb-1 text-white">{t('invite.received')}:</div>
         {invitesReceived.length === 0 ? (
