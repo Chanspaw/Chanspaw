@@ -219,6 +219,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
     setWaitingForOpponent(false);
   };
 
+  // Only allow local dice rolling and winner logic in practice mode
   const rollDice = () => {
     if (!isMyTurn || gameState.gameOver || gameStatus !== 'playing') return;
     // Prevent double roll
@@ -226,7 +227,6 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
     setIsRolling(true);
     setShowOpponentDice(false);
     setRoundResult(null);
-    // Simulate dice animation
     setTimeout(() => {
       const newDice = [
         Math.floor(Math.random() * 6) + 1,
@@ -234,8 +234,8 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
       ];
       setPlayerDice(newDice);
       setIsRolling(false);
-      // PRACTICE MODE: local logic
       if (isPracticeMode) {
+        // PRACTICE MODE: local logic only
         setTimeout(() => {
           const opponentDiceRoll = [
             Math.floor(Math.random() * 6) + 1,
@@ -294,7 +294,7 @@ export function DiceBattle({ onGameEnd }: DiceBattleProps) {
           }, 2000);
         }, 1000);
       } else {
-        // ONLINE: emit move to server
+        // ONLINE: emit move to server ONLY, never calculate winner or round locally
         const socket = getSocket();
         if (socket) {
           socket.emit('makeMove', {
