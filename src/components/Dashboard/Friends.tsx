@@ -165,7 +165,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
       console.log('🎯 Invite received:', data);
       setGameInvitation({
         fromUserId: data.fromUserId || (data.fromUser && data.fromUser.id),
-        fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username),
+        fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username) || `User ${data.fromUserId}`,
         gameType: data.gameType,
         matchType: data.matchType || 'virtual', // Store the matchType
         message: ''
