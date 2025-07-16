@@ -625,6 +625,8 @@ io.on('connection', async (socket) => {
   console.log(`[SOCKET] User connected: ${socket.userId} (${socket.id})`);
   // PATCH: Always keep userSockets up to date
   userSockets.set(socket.userId, socket);
+  // Ensure user joins their user ID room for real-time events
+  socket.join(socket.userId);
 
   // --- Set user as online in DB ---
   try {
