@@ -148,8 +148,8 @@ const Friends: React.FC = () => {
 
     // Listen for invite received
     socket.on('invite:received', (data) => {
-      addToast('info', t('friends.inviteReceived', { user: data.fromUserId }));
-      // Optionally, show a modal or notification
+      setGameInvitation(data);
+      addToast('info', t('friends.inviteReceived', { user: data.fromUsername, game: data.gameType }));
     });
 
     // Listen for invite declined
