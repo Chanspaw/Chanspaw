@@ -144,20 +144,68 @@ router.post('/play', asyncHandler(async (req, res) => {
 
   // Simuler le résultat du jeu (same logic for both real and virtual)
   const gameResult = simulateGame(gameType, gameData);
-  
-  // Calculer les gains (same calculation for both)
-  const winAmount = gameResult.result === 'WIN' ? betAmount * gameResult.multiplier : 0;
-  const finalBalance = userBalance - betAmount + winAmount;
+  const isDraw = gameResult.result === 'DRAW';
+  const isWin = gameResult.result === 'WIN';
+  const winAmount = isWin ? betAmount * gameResult.multiplier : 0;
 
-  // Utiliser une transaction pour mettre à jour le solde et enregistrer le résultat
+  // Use payoutService for real money games to ensure admin cut and payout log
+  if (matchType === 'real') {
+    // Create a pseudo-match for single player games
+    const matchId = `single_${Date.now()}_${req.user.id}`;
+    const player1Id = req.user.id;
+    const player2Id = null;
+    const winnerId = isWin ? req.user.id : null;
+    // Escrow bet
+    await escrowBets({ player1Id, player2Id: player1Id, betAmount, currency: 'real', matchId, gameType });
+    // Payout (handles win, loss, draw, admin cut, and logging)
+    await payoutMatch({
+      matchId,
+      gameType,
+      player1Id,
+      player2Id: player1Id,
+      winnerId,
+      betAmount,
+      currency: 'real',
+      isDraw
+    });
+    // Log payout
+    await prisma.auditLog.create({
+      data: {
+        userId: req.user.id,
+        action: isDraw ? 'PAYOUT_REFUND' : (isWin ? 'PAYOUT_WIN' : 'PAYOUT_LOSS'),
+        details: JSON.stringify({
+          matchId,
+          player: req.user.id,
+          betAmount,
+          winAmount: isWin ? Math.floor(betAmount * 2 * 0.9 * 100) / 100 : 0,
+          adminFee: isWin ? Math.ceil(betAmount * 2 * 0.1 * 100) / 100 : 0,
+          result: gameResult.result,
+          timestamp: new Date().toISOString(),
+          distribution: isDraw ? 'refund' : (isWin ? 'win/admin' : 'loss/admin')
+        })
+      }
+    });
+    return res.json({
+      success: true,
+      message: 'Game played successfully',
+      data: {
+        result: gameResult.result,
+        betAmount,
+        winAmount: isWin ? Math.floor(betAmount * 2 * 0.9 * 100) / 100 : 0,
+        newBalance: null, // frontend should refetch
+        gameDetails: gameResult.details,
+        matchType
+      }
+    });
+  }
+
+  // For virtual games, keep legacy logic
+  const finalBalance = userBalance - betAmount + winAmount;
   await prisma.$transaction(async (tx) => {
-    // Mettre à jour le solde de l'utilisateur
     await tx.user.update({
       where: { id: req.user.id },
-      data: matchType === 'real' ? { real_balance: finalBalance } : { virtual_balance: finalBalance }
+      data: { virtual_balance: finalBalance }
     });
-
-    // Enregistrer le résultat du jeu
     const gameResultRecord = await tx.gameResult.create({
       data: {
         userId: req.user.id,
@@ -173,16 +221,14 @@ router.post('/play', asyncHandler(async (req, res) => {
         })
       }
     });
-
-    // Créer une transaction pour le pari (only for real money)
-    if (matchType === 'real') {
+    if (winAmount > 0) {
       await tx.transaction.create({
         data: {
           userId: req.user.id,
-          type: 'GAME_BET',
-          amount: betAmount,
+          type: 'GAME_WIN',
+          amount: winAmount,
           status: 'COMPLETED',
-          description: `Bet on ${gameType}`,
+          description: `Won ${gameType}`,
           metadata: JSON.stringify({
             gameResultId: gameResultRecord.id,
             gameType,
@@ -190,27 +236,8 @@ router.post('/play', asyncHandler(async (req, res) => {
           })
         }
       });
-
-      // Si l'utilisateur a gagné, créer une transaction pour les gains
-      if (winAmount > 0) {
-        await tx.transaction.create({
-          data: {
-            userId: req.user.id,
-            type: 'GAME_WIN',
-            amount: winAmount,
-            status: 'COMPLETED',
-            description: `Won ${gameType}`,
-            metadata: JSON.stringify({
-              gameResultId: gameResultRecord.id,
-              gameType,
-              matchType
-            })
-          }
-        });
-      }
     }
   });
-
   res.json({
     success: true,
     message: 'Game played successfully',
