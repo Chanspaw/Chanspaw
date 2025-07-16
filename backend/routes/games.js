@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/errorHandler');
 const matchmakingService = require('../services/matchmakingService');
 const requireAdmin = require('../middleware/auth').requireAdmin;
-const { payoutWinnings, escrowBets, payoutMatch } = require('../services/payoutService');
+const { escrowBets, payoutMatch } = require('../services/payoutService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -524,34 +524,36 @@ router.post('/match/:matchId/move', (req, res, next) => req.app.get('gameActionL
     // If match ended, payout winner and fee
     if (winnerId !== null && winnerId !== undefined) {
       const matchRecord = await tx.match.findUnique({ where: { id: matchId } });
-      // Use payoutWinnings for all wallet types, pass tx
-      await payoutWinnings(tx, winnerId, matchRecord.betAmount, matchRecord.matchType);
+      await payoutMatch({
+        matchId,
+        gameType: matchRecord.gameType,
+        player1Id: matchRecord.player1Id,
+        player2Id: matchRecord.player2Id,
+        winnerId,
+        betAmount: matchRecord.betAmount,
+        currency: matchRecord.matchType,
+        isDraw: false
+      });
       // Log audit
       await tx.auditLog.create({ data: { userId: winnerId, action: 'PAYOUT_WIN', details: JSON.stringify({ matchId, winnerAmount: Math.floor(matchRecord.betAmount * 2 * 0.9), platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), matchType: matchRecord.matchType, platformFeePercent: 10 }) } });
-      // Only create transaction records for real money (already handled in payoutWinnings)
       if (matchRecord.matchType === 'real') {
         await tx.auditLog.create({ data: { userId: null, action: 'PLATFORM_FEE', details: JSON.stringify({ matchId, platformFee: Math.ceil(matchRecord.betAmount * 2 * 0.1), platformFeePercent: 10 }) } });
       }
-      
       // Suspicious activity: fast win (under 10 seconds) - only for real money
       if (matchRecord.matchType === 'real' && matchRecord.startedAt && (new Date() - new Date(matchRecord.startedAt)) < 10000) {
         await tx.auditLog.create({ data: { userId: winnerId, action: 'SUSPICIOUS_FAST_WIN', details: JSON.stringify({ matchId, durationMs: new Date() - new Date(matchRecord.startedAt) }) } });
         console.warn(`[ALERT] Suspicious fast win detected for match ${matchId}`);
-        // Increment Prometheus counter
         const suspiciousActivityCounter = req.app.get('suspiciousActivityCounter');
         if (suspiciousActivityCounter) suspiciousActivityCounter.inc();
       }
-      
       // Advanced anti-collusion logic - only for real money
       if (matchRecord.matchType === 'real') {
         const redis = req.app.get('redis');
         const player1Id = matchRecord.player1Id;
         const player2Id = matchRecord.player2Id;
         const now = Date.now();
-        // Track match history for both players
         await redis.zadd(`user:${player1Id}:opponents`, now, player2Id);
         await redis.zadd(`user:${player2Id}:opponents`, now, player1Id);
-        // Count recent matches between these two users (last 24h)
         const since = now - 24*60*60*1000;
         const p1Matches = await redis.zcount(`user:${player1Id}:opponents`, since, now);
         const p2Matches = await redis.zcount(`user:${player2Id}:opponents`, since, now);
@@ -570,9 +572,7 @@ router.post('/match/:matchId/move', (req, res, next) => req.app.get('gameActionL
               details: JSON.stringify({ matchId, opponent: player1Id, matches24h: p2Matches })
             }
           });
-          // Optionally: alert admins or lock accounts for review
           console.warn(`[ALERT] Possible collusion: ${player1Id} and ${player2Id} played ${Math.max(p1Matches, p2Matches)} times in 24h`);
-          // Increment Prometheus counter
           const suspiciousActivityCounter = req.app.get('suspiciousActivityCounter');
           if (suspiciousActivityCounter) suspiciousActivityCounter.inc();
         }

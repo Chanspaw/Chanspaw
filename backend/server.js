@@ -2344,4 +2344,30 @@ app.post('/api/payout', async (req, res) => {
   }
 });
 
+// Public endpoint: /api/games/active
+const express = require('express');
+const { asyncHandler } = require('./middleware/errorHandler');
+const publicGamesRouter = express.Router();
+publicGamesRouter.get('/active', asyncHandler(async (req, res) => {
+  const games = await prisma.game.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      icon: true,
+      minBet: true,
+      maxBet: true,
+      players: true,
+      isActive: true,
+    },
+    orderBy: { name: 'asc' }
+  });
+  res.json({ success: true, data: games });
+}));
+app.use('/api/games', publicGamesRouter); // Register public /active route first
+
+// Protected /api/games routes
+app.use('/api/games', authenticateToken, gameRoutes);
+
 module.exports = { app, io, userSockets }; 
