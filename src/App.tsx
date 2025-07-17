@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { GameProvider, useGame } from './contexts/GameContext';
 import { WalletModeProvider } from './contexts/WalletModeContext';
@@ -52,6 +52,8 @@ import { Settings } from './components/Dashboard/Settings';
 import { Footer } from './components/Layout/Footer';
 import { Chess } from './components/Games/Chess';
 import { BrowserRouter, Routes, Route, useParams, Navigate } from 'react-router-dom';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 // ErrorBoundary component
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
@@ -412,15 +414,52 @@ function MainApp() {
 type MatchRoomProps = {};
 const MatchRoom: React.FC = () => {
   const { matchId } = useParams();
+  const [match, setMatch] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!matchId) return;
+    setLoading(true);
+    fetch(`${API_URL}/api/games/match/${matchId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.match) {
+          setMatch(data.match);
+        } else {
+          setError(data.error || 'Match not found');
+        }
+      })
+      .catch(() => setError('Failed to load match'))
+      .finally(() => setLoading(false));
+  }, [matchId]);
+
   if (!matchId) {
     return <div style={{ color: 'red', padding: 32 }}>Error: No match ID found in the URL. Please return to the dashboard and try again.</div>;
   }
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-2xl font-bold text-white">Match Room</h1>
-      <p className="text-lg text-gray-300">Match ID: {matchId}</p>
-    </div>
-  );
+  if (loading) return <div style={{ color: 'white', padding: 32 }}>Loading match...</div>;
+  if (error) return <div style={{ color: 'red', padding: 32 }}>{error}</div>;
+  if (!match) return <div style={{ color: 'red', padding: 32 }}>Match not found.</div>;
+
+  // Render the correct game component
+  switch (match.gameType) {
+    case 'chess':
+      return <Chess matchId={matchId} />;
+    case 'connect_four':
+      return <ConnectFour matchId={matchId} />;
+    case 'diamond_hunt':
+      return <DiamondHunt matchId={matchId} />;
+    case 'dice_battle':
+      return <DiceBattle matchId={matchId} />;
+    case 'tic_tac_toe':
+      return <TicTacToe5x5 matchId={matchId} />;
+    default:
+      return <div style={{ color: 'red', padding: 32 }}>Unknown game type: {match.gameType}</div>;
+  }
 };
 
 function App() {
