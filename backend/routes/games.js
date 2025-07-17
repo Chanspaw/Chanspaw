@@ -786,6 +786,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   console.log('🔍 UserSockets map size:', userSockets.size);
   console.log('🔍 Looking for target user socket:', toUserId);
   console.log('🔍 Available user IDs in userSockets:', Array.from(userSockets.keys()));
+  console.log('🔍 Full userSockets map:', Array.from(userSockets.entries()).map(([uid, s]) => `${uid}:${s.id}`));
   console.log('🔍 Target user exists in userSockets:', userSockets.has(toUserId));
   
   const sock = userSockets.get(toUserId);
@@ -804,6 +805,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
   } else {
     console.log('⚠️ Target user socket not found:', toUserId);
     console.log('⚠️ This means the user is not connected to the socket or not in userSockets map');
+    console.log('⚠️ Full userSockets map:', Array.from(userSockets.entries()).map(([uid, s]) => `${uid}:${s.id}`));
     console.log('⚠️ User might need to refresh the page or reconnect to socket');
     
     // Store invite in Redis with longer expiration for offline users

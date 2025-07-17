@@ -617,12 +617,14 @@ function getPlayerSockets(player1, player2) {
 }
 
 io.on('connection', async (socket) => {
-  // At the top of the socket.on('connection', ...) handler, before any event handlers:
   if (!socket.userId) {
     console.log('Unauthorized socket connection:', socket.id);
     return socket.disconnect();
   }
   console.log(`[SOCKET] User connected: ${socket.userId} (${socket.id})`);
+  userSockets.set(socket.userId, socket);
+  console.log('[SOCKET] userSockets map after connect:', Array.from(userSockets.entries()).map(([uid, s]) => `${uid}:${s.id}`));
+  socket.join(socket.userId);
   // PATCH: Always keep userSockets up to date
   userSockets.set(socket.userId, socket);
   // Ensure user joins their user ID room for real-time events
@@ -1893,7 +1895,9 @@ io.on('connection', async (socket) => {
   });
 
   socket.on('disconnect', async () => {
-    console.log(`[DISCONNECT] User ${socket.userId} disconnected`);
+    console.log(`[DISCONNECT] User ${socket.userId} disconnected (socket ${socket.id})`);
+    userSockets.delete(socket.userId);
+    console.log('[SOCKET] userSockets map after disconnect:', Array.from(userSockets.entries()).map(([uid, s]) => `${uid}:${s.id}`));
     // Remove from queue
     for (let i = matchmakingQueue.length - 1; i >= 0; i--) {
       if (matchmakingQueue[i].userId === socket.userId) {

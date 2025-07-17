@@ -119,6 +119,11 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     console.log('🔌 Socket ID:', socket.id);
     console.log('🔌 User authenticated:', !!localStorage.getItem('chanspaw_access_token'));
 
+    if (!socket.connected) {
+      console.log('🔄 Forcing socket reconnect...');
+      socket.connect();
+    }
+
     // Request online users when component loads
     socket.emit('getOnlineUsers');
     console.log('📡 Requested online users');
@@ -193,10 +198,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
 
     // Listen for invite received
     socket.on('invite:received', (data) => {
-      console.log('🎯 Invite received:', data);
-      console.log('🎯 Current user ID:', user?.id);
-      console.log('🎯 Socket connected:', socket.connected);
-      console.log('🎯 Socket ID:', socket.id);
+      console.log('🎯 [FRIENDS] Invite received event:', data);
       setGameInvitation({
         fromUserId: data.fromUserId || (data.fromUser && data.fromUser.id),
         fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username) || `User ${data.fromUserId}`,
