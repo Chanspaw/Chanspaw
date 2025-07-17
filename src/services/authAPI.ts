@@ -67,7 +67,7 @@ interface TwoFactorResponse {
 }
 
 export class AuthAPI {
-  private static baseURL = import.meta.env.VITE_API_URL + '/auth';
+  private static baseURL = import.meta.env.VITE_API_URL + '/api/auth';
 
   // HTTP Client with JWT handling
   private static async request<T>(
