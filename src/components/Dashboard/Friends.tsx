@@ -7,6 +7,7 @@ import PlayerSearchInvite from '../UI/PlayerSearchInvite';
 import { useToast } from '../UI/Toast';
 import { GameBetModal } from '../Games/GameBetModal';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -55,6 +56,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     { value: 'tic_tac_toe', label: t('games.ticTacToe5x5') },
     { value: 'dice_battle', label: t('games.diceBattle') },
   ];
+  const navigate = useNavigate();
 
   // Load data on component mount
   useEffect(() => {
@@ -246,24 +248,12 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
         }
         return updated;
       });
-      
-      // Use the app's navigation system instead of window.location.href
-      if (onNavigateToGame && data.matchId && data.gameType) {
-        console.log('🚀 Navigating to game:', { gameType: data.gameType, matchId: data.matchId });
-        // Map backend game types to frontend game IDs
-        const gameTypeMap: { [key: string]: string } = {
-          'chess': 'chess',
-          'connect_four': 'connect-four',
-          'tic_tac_toe': 'tictactoe-5x5',
-          'dice_battle': 'dice-battle',
-          'diamond_hunt': 'diamond-hunt'
-        };
-        
-        const frontendGameId = gameTypeMap[data.gameType] || data.gameType;
-        console.log('🎯 Calling onNavigateToGame with:', { frontendGameId, matchId: data.matchId });
-        onNavigateToGame(frontendGameId, data.matchId);
+      // Redirect both players to the unique match page
+      if (data.matchId) {
+        navigate(`/match/${data.matchId}`);
       } else {
-        console.log('❌ Missing data for navigation:', { onNavigateToGame: !!onNavigateToGame, matchId: data.matchId, gameType: data.gameType });
+        addToast('error', t('friends.matchError'));
+        navigate('/dashboard');
       }
     });
 
@@ -287,7 +277,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
       socket.off('matchFound');
       socket.off('invite:timeout');
     };
-  }, [user?.id, addToast, t, onNavigateToGame]);
+  }, [user?.id, addToast, t, navigate]);
 
   const loadFriends = async () => {
     if (!user?.id) return;

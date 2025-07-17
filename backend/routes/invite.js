@@ -145,9 +145,10 @@ router.post('/accept', authenticateToken, asyncHandler(async (req, res) => {
       player1Id: invite.fromUserId,
       player2Id: invite.toUserId,
       betAmount: invite.betAmount,
-      status: 'pending',
+      status: 'IN_PROGRESS',
       matchType: invite.matchType,
-      gameState: '{}'
+      gameState: '{}',
+      startedAt: new Date()
     }
   });
   // Notify both users with matchFound event
