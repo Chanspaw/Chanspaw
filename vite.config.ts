@@ -9,6 +9,9 @@ export default defineConfig({
     port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
     allowedHosts: ['www.chanspaw.com'],
   },
+  build: {
+    sourcemap: true,
+  },
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
