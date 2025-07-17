@@ -51,6 +51,7 @@ import {
 import { Settings } from './components/Dashboard/Settings';
 import { Footer } from './components/Layout/Footer';
 import { Chess } from './components/Games/Chess';
+import { BrowserRouter, Routes, Route, useParams, Navigate } from 'react-router-dom';
 
 function GameSection({ activeGame, onPlayGame, onBackToGames, currentMatchId }: { 
   activeGame: string | null; 
@@ -386,15 +387,42 @@ function MainApp() {
   );
 }
 
+// MatchRoom component to load the correct game by matchId
+type MatchRoomProps = {};
+const MatchRoom: React.FC<MatchRoomProps> = () => {
+  const { matchId } = useParams();
+  // You may want to fetch match details here to determine game type
+  // For now, assume game type is passed via state or can be inferred
+  // Example: <Route path="/match/:matchId" element={<MatchRoom />} />
+  // You can enhance this to fetch match details from API
+  // For now, just render a placeholder
+  if (!matchId) return <Navigate to="/dashboard" />;
+  // You can add logic here to fetch match/game type and render the correct game component
+  // Example: <Chess matchId={matchId} />
+  // For now, just show the matchId
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold text-white">Match Room</h1>
+      <p className="text-lg text-gray-300">Match ID: {matchId}</p>
+      {/* TODO: Render the correct game component here based on match info */}
+    </div>
+  );
+};
+
 function App() {
   return (
-    <AuthProvider>
-      <WalletModeProvider>
-      <GameProvider>
-        <MainApp />
-      </GameProvider>
-      </WalletModeProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <WalletModeProvider>
+          <GameProvider>
+            <Routes>
+              <Route path="/match/:matchId" element={<MatchRoom />} />
+              <Route path="/*" element={<MainApp />} />
+            </Routes>
+          </GameProvider>
+        </WalletModeProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
