@@ -410,28 +410,17 @@ function MainApp() {
 
 // MatchRoom component to load the correct game by matchId
 type MatchRoomProps = {};
-const MatchRoom: React.FC<MatchRoomProps> = () => {
+const MatchRoom: React.FC = () => {
   const { matchId } = useParams();
-  React.useEffect(() => {
-    console.log('[MatchRoom] Mounted with matchId:', matchId);
-  }, [matchId]);
   if (!matchId) {
-    console.error('[MatchRoom] No matchId in URL');
     return <div style={{ color: 'red', padding: 32 }}>Error: No match ID found in the URL. Please return to the dashboard and try again.</div>;
   }
-  try {
-    // TODO: Fetch match/game type and render correct game component
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold text-white">Match Room</h1>
-        <p className="text-lg text-gray-300">Match ID: {matchId}</p>
-        {/* TODO: Render the correct game component here based on match info */}
-      </div>
-    );
-  } catch (err) {
-    console.error('[MatchRoom] Error rendering match room:', err);
-    return <div style={{ color: 'red', padding: 32 }}>Unexpected error loading match room: {String(err)}</div>;
-  }
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold text-white">Match Room</h1>
+      <p className="text-lg text-gray-300">Match ID: {matchId}</p>
+    </div>
+  );
 };
 
 function App() {
