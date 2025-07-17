@@ -108,7 +108,6 @@ const allowedOrigins = [
   'http://localhost:5180',
   'https://chanspaw.com',
   'https://www.chanspaw.com',
-  'https://chanspaw.onrender.com'
 ];
 app.use('/api', cors({
   origin: function (origin, callback) {
