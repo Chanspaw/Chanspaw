@@ -411,17 +411,16 @@ function MainApp() {
 // MatchRoom component to load the correct game by matchId
 type MatchRoomProps = {};
 const MatchRoom: React.FC<MatchRoomProps> = () => {
+  const { matchId } = useParams();
+  React.useEffect(() => {
+    console.log('[MatchRoom] Mounted with matchId:', matchId);
+  }, [matchId]);
+  if (!matchId) {
+    console.error('[MatchRoom] No matchId in URL');
+    return <div style={{ color: 'red', padding: 32 }}>Error: No match ID found in the URL. Please return to the dashboard and try again.</div>;
+  }
   try {
-    const { matchId } = useParams();
-    // You may want to fetch match details here to determine game type
-    // For now, assume game type is passed via state or can be inferred
-    // Example: <Route path="/match/:matchId" element={<MatchRoom />} />
-    // You can enhance this to fetch match details from API
-    // For now, just render a placeholder
-    if (!matchId) return <Navigate to="/dashboard" />;
-    // You can add logic here to fetch match/game type and render the correct game component
-    // Example: <Chess matchId={matchId} />
-    // For now, just show the matchId
+    // TODO: Fetch match/game type and render correct game component
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <h1 className="text-2xl font-bold text-white">Match Room</h1>
@@ -430,7 +429,8 @@ const MatchRoom: React.FC<MatchRoomProps> = () => {
       </div>
     );
   } catch (err) {
-    return <div style={{ color: 'red', padding: 32 }}>Error loading match room: {String(err)}</div>;
+    console.error('[MatchRoom] Error rendering match room:', err);
+    return <div style={{ color: 'red', padding: 32 }}>Unexpected error loading match room: {String(err)}</div>;
   }
 };
 
