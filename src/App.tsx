@@ -433,6 +433,7 @@ function App() {
               <Routes>
                 <Route path="/match/:matchId" element={<MatchRoom />} />
                 <Route path="/*" element={<MainApp />} />
+                <Route path="*" element={<div style={{ color: 'red', padding: 32 }}>404: Page Not Found</div>} />
               </Routes>
             </GameProvider>
           </WalletModeProvider>
