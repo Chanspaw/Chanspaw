@@ -2397,4 +2397,15 @@ app.use('/api/games', publicGamesRouter); // <-- PUBLIC, must come BEFORE protec
 // PROTECTED routes
 app.use('/api/games', authenticateToken, gameRoutes);
 
+app.get('/debug-list-dist', (req, res) => {
+  const fs = require('fs');
+  const dir = path.join(__dirname, '../dist');
+  try {
+    const files = fs.readdirSync(dir);
+    res.json({ files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = { app, io, userSockets }; 
