@@ -105,11 +105,27 @@ const resources = {
         success: 'Invitation envoyée !'
       },
       friends: {
+        yourFriends: 'Vos amis',
+        friendRequests: 'Demandes d\'ami',
+        findFriends: 'Trouver des amis',
         invite: 'Inviter',
+        gameInvitation: 'Invitation de jeu',
         invitedYou: '{{user}} vous a invité à jouer à {{game}} !',
-        noFriendsYet: '',
-        startBySearching: '',
-        offline: ''
+        invitedYouToPlay: '{{user}} vous a invité à jouer à {{game}} !',
+        inviteReceived: 'Vous avez reçu une nouvelle invitation.',
+        inviteAccepted: 'Votre invitation a été acceptée !',
+        inviteDeclined: 'Votre invitation a été refusée.',
+        inviteTimeout: 'Votre invitation a expiré.',
+        inviteFailed: 'Impossible d\'envoyer l\'invitation. Veuillez réessayer.',
+        invitePending: 'Invitation en attente.',
+        networkError: 'Erreur réseau. Veuillez réessayer.',
+        noFriendsYet: 'Vous n\'avez pas encore d\'amis.',
+        startBySearching: 'Commencez par chercher de nouveaux amis.',
+        online: 'En ligne',
+        offline: 'Hors ligne',
+        noPendingRequests: 'Aucune demande en attente.',
+        allCaughtUp: 'Vous êtes à jour !',
+        selectGame: 'Choisir le jeu'
       },
       admin: {
         invites: 'Invitations',
@@ -162,11 +178,27 @@ const resources = {
         success: 'Envitasyon voye!'
       },
       friends: {
+        yourFriends: 'Pwòp ou',
+        friendRequests: 'Demande d\'ami',
+        findFriends: 'Chwazi pwòp',
         invite: 'Envite',
+        gameInvitation: 'Envitasyon jwèt',
         invitedYou: '{{user}} envite ou jwe {{game}}!',
-        noFriendsYet: '',
-        startBySearching: '',
-        offline: ''
+        invitedYouToPlay: '{{user}} envite ou jwe {{game}}!',
+        inviteReceived: 'Ou gen yon nouvo envitasyon.',
+        inviteAccepted: 'Envitasyon ou a aksepte!',
+        inviteDeclined: 'Envitasyon ou a refize.',
+        inviteTimeout: 'Envitasyon ou a ekspire.',
+        inviteFailed: 'Imposib pou voye envitasyon. Tanpri retyen.',
+        invitePending: 'Envitasyon an atant.',
+        networkError: 'Erè rezo. Tanpri retyen.',
+        noFriendsYet: 'Ou pa gen pwòp ou ankò.',
+        startBySearching: 'Kòmanse pa chwazi pwòp nouvo.',
+        online: 'En ligne',
+        offline: 'Hors ligne',
+        noPendingRequests: 'Pa gen demande an atant.',
+        allCaughtUp: 'Ou gen tout aksepte!',
+        selectGame: 'Chwazi jwèt'
       },
       admin: {
         invites: 'Envitasyon',

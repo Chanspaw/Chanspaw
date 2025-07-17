@@ -430,11 +430,12 @@ export function AdminDashboard() {
     (filterStatus === 'all' || message.status === filterStatus)
   );
 
+  // [MAJOR EDIT] Refactor invite-based match management to use new /api/admin/invites endpoints. Ensure all admin actions (view, cancel, delete, refund) are production-ready, logged, and UI is multilingual and responsive. Remove any legacy logic.
   const loadInviteMatches = async () => {
     setInviteLoading(true);
     setInviteError(null);
     try {
-      const res = await fetch(`/api/admin/invites?page=${invitePage}&limit=50&status=${inviteFilter !== 'all' ? inviteFilter : ''}&search=${inviteSearch}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/invites?page=${invitePage}&limit=50&status=${inviteFilter !== 'all' ? inviteFilter : ''}&search=${inviteSearch}`);
       const data = await res.json();
       if (data.success) {
         setInviteMatches(data.data.matches);
@@ -455,7 +456,7 @@ export function AdminDashboard() {
     setInviteLoading(true);
     setInviteError(null);
     try {
-      let url = `/api/admin/invites/${id}`;
+      let url = `${import.meta.env.VITE_API_URL}/api/admin/invites/${id}`;
       let method = 'POST';
       if (action === 'delete') method = 'DELETE';
       if (action === 'cancel') url += '/cancel';

@@ -114,7 +114,7 @@ const PlayerSearchInvite: React.FC = () => {
 
   // Send invite with game and amount
   const sendInvite = (user: User) => {
-    if (!socketRef.current || !currentUser || !selectedGame) return;
+    if (!currentUser || !selectedGame) return;
     if (betAmount < selectedGame.minBet || betAmount > selectedGame.maxBet) {
       setInviteError(`Bet must be between ${selectedGame.minBet} and ${selectedGame.maxBet}`);
       return;
@@ -125,41 +125,132 @@ const PlayerSearchInvite: React.FC = () => {
       return;
     }
     setInviteError(null);
-    socketRef.current.emit('invite:send', { to: user.id, gameType: selectedGame.id, betAmount });
-    setInvitesSent((prev) => [
-      { from: currentUser, to: user, status: 'pending', gameType: selectedGame.id, betAmount },
-      ...prev.filter(i => i.to.id !== user.id),
-    ]);
+    fetch(`${API_BASE}/invite/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ to: user.id, gameType: selectedGame.id, betAmount })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setInvitesSent((prev) => [
+            { from: currentUser, to: user, status: 'pending', gameType: selectedGame.id, betAmount },
+            ...prev.filter(i => i.to.id !== user.id),
+          ]);
+        } else {
+          setInviteError(data.message || 'Failed to send invite');
+        }
+      })
+      .catch(err => {
+        setInviteError('Network error sending invite');
+        console.error(err);
+      });
   };
 
   // Cancel invite
   const cancelInvite = (user: User) => {
-    if (!socketRef.current) return;
-    socketRef.current.emit("invite:cancel", { to: user.id });
-    setInvitesSent((prev) => prev.filter(i => i.to.id !== user.id));
+    if (!currentUser) return;
+    fetch(`${API_BASE}/invite/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ to: user.id })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setInvitesSent((prev) => prev.filter(i => i.to.id !== user.id));
+        } else {
+          setInviteError(data.message || 'Failed to cancel invite');
+        }
+      })
+      .catch(err => {
+        setInviteError('Network error cancelling invite');
+        console.error(err);
+      });
   };
 
   // Accept invite only if enough balance
-  const acceptInvite = (invite: any) => {
-    if (!socketRef.current) return;
+  const acceptInvite = (invite: Invite) => {
+    if (!currentUser) return;
     const balance = invite.gameType === 'real' ? userBalances.real_balance : userBalances.virtual_balance;
     if (balance < invite.betAmount) return;
-    socketRef.current.emit('invite:accept', { from: invite.from.id, gameType: invite.gameType, betAmount: invite.betAmount });
-    setInvitesReceived((prev) => prev.filter(i => i.from.id !== invite.from.id));
+    fetch(`${API_BASE}/invite/accept`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ from: invite.from.id, gameType: invite.gameType, betAmount: invite.betAmount })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setInvitesReceived((prev) => prev.filter(i => i.from.id !== invite.from.id));
+        } else {
+          setInviteError(data.message || 'Failed to accept invite');
+        }
+      })
+      .catch(err => {
+        setInviteError('Network error accepting invite');
+        console.error(err);
+      });
   };
 
   // Decline invite
   const declineInvite = (from: User) => {
-    if (!socketRef.current) return;
-    socketRef.current.emit("invite:decline", { from: from.id });
-    setInvitesReceived((prev) => prev.filter(i => i.from.id !== from.id));
+    if (!currentUser) return;
+    fetch(`${API_BASE}/invite/decline`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ from: from.id })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setInvitesReceived((prev) => prev.filter(i => i.from.id !== from.id));
+        } else {
+          setInviteError(data.message || 'Failed to decline invite');
+        }
+      })
+      .catch(err => {
+        setInviteError('Network error declining invite');
+        console.error(err);
+      });
   };
 
   // Start match instantly (bypass invite)
   const startMatch = (user: User) => {
-    if (!socketRef.current) return;
+    if (!currentUser) return;
     setMatchStarting("pending");
-    socketRef.current.emit("match:start", { opponentId: user.id });
+    fetch(`${API_BASE}/match/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ opponentId: user.id })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setMatchStarting(data.matchId);
+        } else {
+          setInviteError(data.message || 'Failed to start match');
+        }
+      })
+      .catch(err => {
+        setInviteError('Network error starting match');
+        console.error(err);
+      });
   };
 
   // UI
