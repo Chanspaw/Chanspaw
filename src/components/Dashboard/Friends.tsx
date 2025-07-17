@@ -698,24 +698,6 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
             >
               {t('general.refresh')}
             </button>
-            <button 
-              onClick={() => {
-                const socket = getSocket();
-                if (socket) {
-                  console.log('🔍 Socket Debug Info:');
-                  console.log('🔍 Socket connected:', socket.connected);
-                  console.log('🔍 Socket ID:', socket.id);
-                  console.log('🔍 User ID:', user?.id);
-                  console.log('🔍 Auth token exists:', !!localStorage.getItem('chanspaw_access_token'));
-                  socket.emit('getOnlineUsers');
-                } else {
-                  console.log('❌ Socket not available');
-                }
-              }}
-              className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-            >
-              Debug Socket
-            </button>
           </div>
           {isLoading ? (
             <div className="py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div></div>
