@@ -1758,4 +1758,20 @@ router.use('*', (req, res) => {
   res.status(404).json({ success: false, error: 'Route not found in games router' });
 });
 
+// Get match info by matchId
+router.get('/match/:matchId', authenticateToken, async (req, res) => {
+  const { matchId } = req.params;
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId }
+    });
+    if (!match) {
+      return res.status(404).json({ success: false, error: 'Match not found' });
+    }
+    res.json({ success: true, match });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch match' });
+  }
+});
+
 module.exports = router; 

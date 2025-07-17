@@ -248,11 +248,11 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
         }
         return updated;
       });
-      // Redirect both players to the unique match page
-      if (data.matchId) {
+      // Defensive: Only navigate if matchId is valid
+      if (data.matchId && typeof data.matchId === 'string' && data.matchId !== 'undefined' && data.matchId !== '') {
         navigate(`/match/${data.matchId}`);
       } else {
-        addToast('error', t('friends.matchError'));
+        addToast('error', t('friends.matchError') || 'Match error: missing match ID.');
         navigate('/dashboard');
       }
     });
