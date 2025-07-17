@@ -367,12 +367,11 @@ app.get('/metrics', async (req, res) => {
 
 // Serve static files from the frontend build
 const path = require('path');
-console.log('Serving static files from:', path.join(__dirname, '../dist'));
-app.use(express.static(path.join(__dirname, '../dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // For any route not handled by the API, serve index.html (for React Router)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Error handling middleware
