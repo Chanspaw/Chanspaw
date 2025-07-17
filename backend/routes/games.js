@@ -786,10 +786,13 @@ router.post('/invite', asyncHandler(async (req, res) => {
   console.log('🔍 UserSockets map size:', userSockets.size);
   console.log('🔍 Looking for target user socket:', toUserId);
   console.log('🔍 Available user IDs in userSockets:', Array.from(userSockets.keys()));
+  console.log('🔍 Target user exists in userSockets:', userSockets.has(toUserId));
   
   const sock = userSockets.get(toUserId);
   if (sock) {
     console.log('📡 Emitting invite:received to user:', toUserId);
+    console.log('📡 Socket ID:', sock.id);
+    console.log('📡 Socket connected:', sock.connected);
     sock.emit('invite:received', { 
       fromUserId, 
       fromUsername: fromUser.username, 
@@ -797,9 +800,28 @@ router.post('/invite', asyncHandler(async (req, res) => {
       betAmount, 
       matchType 
     });
+    console.log('✅ Invite:received event emitted successfully');
   } else {
     console.log('⚠️ Target user socket not found:', toUserId);
     console.log('⚠️ This means the user is not connected to the socket or not in userSockets map');
+    console.log('⚠️ User might need to refresh the page or reconnect to socket');
+    
+    // Store invite in Redis with longer expiration for offline users
+    const offlineInviteKey = `offline_invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
+    const offlineInviteData = { 
+      fromUserId, 
+      fromUsername: fromUser.username, 
+      gameType, 
+      betAmount, 
+      matchType,
+      createdAt: Date.now()
+    };
+    try {
+      await redis.set(offlineInviteKey, JSON.stringify(offlineInviteData), 'EX', 3600); // 1 hour
+      console.log('💾 Stored offline invite for user:', toUserId);
+    } catch (err) {
+      console.log('❌ Failed to store offline invite:', err.message);
+    }
   }
   
   console.log('✅ Invite creation completed successfully');
@@ -1695,6 +1717,38 @@ function simulateGame(gameType, gameData) {
 async function handleMatchEnd({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, matchType, isDraw }) {
   await payoutMatch({ matchId, gameType, player1Id, player2Id, winnerId, betAmount, currency: matchType, isDraw });
 }
+
+// Check for offline invites
+router.get('/invite/check-offline', asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const redis = req.app.get('redis');
+  
+  if (!redis) {
+    return res.status(500).json({ success: false, error: 'Redis not available' });
+  }
+  
+  try {
+    // Get all offline invites for this user
+    const pattern = `offline_invite:${userId}:*`;
+    const keys = await redis.keys(pattern);
+    
+    const invites = [];
+    for (const key of keys) {
+      const inviteData = await redis.get(key);
+      if (inviteData) {
+        const invite = JSON.parse(inviteData);
+        invites.push(invite);
+        // Remove the offline invite since we're delivering it
+        await redis.del(key);
+      }
+    }
+    
+    res.json({ success: true, invites });
+  } catch (error) {
+    console.error('Error checking offline invites:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+}));
 
 // Catch-all route for debugging
 router.use('*', (req, res) => {

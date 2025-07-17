@@ -61,8 +61,39 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     if (user?.id) {
       loadFriends();
       loadFriendRequests();
+      checkOfflineInvites();
     }
   }, [user?.id]);
+
+  // Check for offline invites
+  const checkOfflineInvites = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/games/invite/check-offline`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('chanspaw_access_token')}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.invites && data.invites.length > 0) {
+          console.log('📬 Found offline invites:', data.invites);
+          // Show the most recent invite
+          const latestInvite = data.invites[data.invites.length - 1];
+          setGameInvitation({
+            fromUserId: latestInvite.fromUserId,
+            fromUsername: latestInvite.fromUsername,
+            gameType: latestInvite.gameType,
+            matchType: latestInvite.matchType,
+            message: ''
+          });
+          addToast('info', `You have ${data.invites.length} pending invitation(s)`);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking offline invites:', error);
+    }
+  };
 
   // Request online users after friends are loaded
   useEffect(() => {
@@ -163,6 +194,9 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     // Listen for invite received
     socket.on('invite:received', (data) => {
       console.log('🎯 Invite received:', data);
+      console.log('🎯 Current user ID:', user?.id);
+      console.log('🎯 Socket connected:', socket.connected);
+      console.log('🎯 Socket ID:', socket.id);
       setGameInvitation({
         fromUserId: data.fromUserId || (data.fromUser && data.fromUser.id),
         fromUsername: data.fromUsername || (data.fromUser && data.fromUser.username) || `User ${data.fromUserId}`,
@@ -663,6 +697,24 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
               className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
             >
               {t('general.refresh')}
+            </button>
+            <button 
+              onClick={() => {
+                const socket = getSocket();
+                if (socket) {
+                  console.log('🔍 Socket Debug Info:');
+                  console.log('🔍 Socket connected:', socket.connected);
+                  console.log('🔍 Socket ID:', socket.id);
+                  console.log('🔍 User ID:', user?.id);
+                  console.log('🔍 Auth token exists:', !!localStorage.getItem('chanspaw_access_token'));
+                  socket.emit('getOnlineUsers');
+                } else {
+                  console.log('❌ Socket not available');
+                }
+              }}
+              className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+            >
+              Debug Socket
             </button>
           </div>
           {isLoading ? (
