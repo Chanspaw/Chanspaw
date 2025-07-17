@@ -4,6 +4,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const matchmakingService = require('../services/matchmakingService');
 const requireAdmin = require('../middleware/auth').requireAdmin;
 const { escrowBets, payoutMatch } = require('../services/payoutService');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
