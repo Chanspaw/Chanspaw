@@ -4,7 +4,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
-const socketioPkg = require('socket.io/package.json');
 const jwt = require('jsonwebtoken');
 const client = require('prom-client');
 const Redis = require('ioredis');
@@ -389,7 +388,6 @@ const io = new Server(server, {
     credentials: true
   } : { origin: '*' }
 });
-console.log(`[SOCKET.IO] Backend version: ${socketioPkg.version}`);
 
 // User-to-socket mapping
 const userSockets = new Map(); // userId -> socket
