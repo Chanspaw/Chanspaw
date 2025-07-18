@@ -1741,11 +1741,9 @@ io.on('connection', async (socket) => {
       const nextTurn = chess.turn(); // 'w' or 'b'
       const nextPlayerIndex = nextTurn === 'w' ? 0 : 1;
       const nextPlayerId = players[nextPlayerIndex];
-      gameState.currentTurn = nextPlayerId; // Store whose turn it is
-      
-      // Start timer for next player
+      gameState.currentTurn = nextPlayerId;
       startTurnTimer(matchId, nextPlayerId);
-
+      
       // Convert FEN to board mapping for frontend
       function fenToBoard(fen) {
         const [position] = fen.split(' ');
@@ -1799,8 +1797,8 @@ io.on('connection', async (socket) => {
         isStalemate,
         isDraw,
         drawReason,
-        nextPlayerId, // Add this!
-        moveHistory: gameState.moveHistory // Provide move history for frontend if needed
+        nextPlayerId,
+        moveHistory: gameState.moveHistory
       };
 
       // Emit moveMade to both players
@@ -1828,19 +1826,16 @@ io.on('connection', async (socket) => {
       
       // If game ended
       if (isCheckmate || isStalemate || isDraw) {
-        console.log(`[CHESS] Game ended: checkmate=${isCheckmate}, stalemate=${isStalemate}, draw=${isDraw}`);
-        const winner = isCheckmate ? (chess.turn() === 'w' ? 'black' : 'white') : 'draw';
-        const winnerId = winner === 'draw' ? null : (winner === 'white' ? players[0] : players[1]);
-        const isDrawGame = !winnerId;
-        await payoutMatch({
+        handleChessGameEnd({
           matchId,
-          gameType: 'chess',
-          player1Id: players[0],
-          player2Id: players[1],
-          winnerId,
-          betAmount: gameState.stake,
-          currency: gameState.walletMode,
-          isDraw: isDrawGame
+          gameState,
+          chess,
+          isCheckmate,
+          isStalemate,
+          isDraw,
+          drawReason,
+          players,
+          lastMoveBy: socket.userId
         });
       }
     }
