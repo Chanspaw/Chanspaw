@@ -5,6 +5,7 @@ const matchmakingService = require('../services/matchmakingService');
 const requireAdmin = require('../middleware/auth').requireAdmin;
 const { escrowBets, payoutMatch } = require('../services/payoutService');
 const { authenticateToken } = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -887,13 +888,14 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
       await prisma.user.update({ where: { id: fromUserId }, data: { virtual_balance: { decrement: betAmount } } });
       await prisma.user.update({ where: { id: toUserId }, data: { virtual_balance: { decrement: betAmount } } });
     }
-    // Log audit
     await prisma.auditLog.create({ data: { userId: fromUserId, action: 'ESCROW_DEBIT', details: JSON.stringify({ matchType: gameType, betAmount, currency: matchType }) } });
     await prisma.auditLog.create({ data: { userId: toUserId, action: 'ESCROW_DEBIT', details: JSON.stringify({ matchType: gameType, betAmount, currency: matchType }) } });
-    // Create match and commit to DB
+    // Create match and commit to DB with explicit UUID
+    const matchId = uuidv4();
     const initialState = getInitialGameState(gameType, [fromUserId, toUserId]);
     const match = await prisma.match.create({
       data: {
+        id: matchId,
         gameType,
         player1Id: fromUserId,
         player2Id: toUserId,
