@@ -833,7 +833,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
 
 // Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
-  console.log('🎯 [LOG] Invite accept request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
+  console.log('🎯 [LOG] Invite accept request received:', { body: req.body, user: req.user?.id });
   try {
     const { fromUserId, gameType, matchType = 'real' } = req.body;
     const toUserId = req.user.id;
@@ -902,36 +902,31 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
         startedAt: new Date(),
         gameState: JSON.stringify(initialState),
         escrow: betAmount * 2,
-        matchType
-      }
+        matchType,
+        inviteId: invite.id,
+      },
     });
-    console.log('✅ [LOG] Match created and committed:', match);
-    // Log match creation
-    await prisma.auditLog.create({ data: { userId: null, action: 'MATCH_CREATED', details: JSON.stringify({ matchId: match.id, gameType, betAmount, player1Id: fromUserId, player2Id: toUserId, matchType }) } });
-    // Notify both users
+    // Immediately fetch the match to confirm it exists
+    const confirmedMatch = await prisma.match.findUnique({ where: { id: match.id } });
+    if (!confirmedMatch) {
+      console.error('❌ [LOG] Match creation failed, not found after insert:', match.id);
+      return res.status(500).json({ success: false, error: 'Match creation failed. Please try again.' });
+    }
+    console.log('✅ [LOG] Match created and confirmed:', confirmedMatch.id);
+    // Emit matchFound event to both users
     const userSockets = req.app.get('userSockets');
-    const payload = { matchId: match.id, gameType, betAmount, matchType };
     if (userSockets) {
       const inviterSocket = userSockets.get(fromUserId);
       const inviteeSocket = userSockets.get(toUserId);
-      if (inviterSocket) {
-        console.log('📡 Emitting matchFound to inviter:', fromUserId, payload);
-        inviterSocket.emit('matchFound', payload);
-      } else {
-        console.warn('⚠️ Inviter socket not found:', fromUserId);
-      }
-      if (inviteeSocket) {
-        console.log('📡 Emitting matchFound to invitee:', toUserId, payload);
-        inviteeSocket.emit('matchFound', payload);
-      } else {
-        console.warn('⚠️ Invitee socket not found:', toUserId);
-      }
+      const payload = { matchId: confirmedMatch.id, gameType: confirmedMatch.gameType, betAmount: confirmedMatch.betAmount, matchType: confirmedMatch.matchType };
+      if (inviterSocket) inviterSocket.emit('matchFound', payload);
+      if (inviteeSocket) inviteeSocket.emit('matchFound', payload);
+      console.log('✅ [LOG] matchFound event emitted to both users:', payload);
     }
-    console.log('✅ Invite accept completed successfully, matchId:', match.id);
-    res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
-  } catch (error) {
-    console.error('❌ [LOG] Error in invite accept:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.json({ success: true, matchId: confirmedMatch.id });
+  } catch (err) {
+    console.error('❌ [LOG] Error in invite accept:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 }));
 
@@ -1749,23 +1744,21 @@ router.use('*', (req, res) => {
 });
 
 // Get match info by matchId
-router.get('/match/:matchId', authenticateToken, async (req, res) => {
+router.get('/match/:matchId', asyncHandler(async (req, res) => {
   const { matchId } = req.params;
+  console.log('🔍 [LOG] Fetching match:', matchId);
   try {
-    console.log('🔍 [LOG] Fetching match:', matchId);
-    const match = await prisma.match.findUnique({
-      where: { id: matchId }
-    });
+    const match = await prisma.match.findUnique({ where: { id: matchId } });
     if (!match) {
-      console.log('❌ [LOG] Match not found for id:', matchId);
-      return res.status(404).json({ success: false, error: 'Match not found' });
+      console.error('❌ [LOG] Match not found for id:', matchId);
+      return res.status(404).json({ error: 'Match not found.' });
     }
-    console.log('✅ [LOG] Match found:', match);
-    res.json({ success: true, match });
-  } catch (error) {
-    console.error('❌ [LOG] Error fetching match:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch match' });
+    console.log('✅ [LOG] Match found:', matchId);
+    return res.json(match);
+  } catch (err) {
+    console.error('❌ [LOG] Error fetching match:', err);
+    return res.status(500).json({ error: 'Internal server error.' });
   }
-});
+}));
 
 module.exports = router; 
