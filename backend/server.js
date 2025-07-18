@@ -1800,7 +1800,7 @@ io.on('connection', async (socket) => {
         isDraw,
         drawReason,
         nextPlayerId, // Add this!
-        board: fenToBoard(chess.fen()), // Add board mapping for frontend
+        moveHistory: gameState.moveHistory // Provide move history for frontend if needed
       };
 
       // Emit moveMade to both players
