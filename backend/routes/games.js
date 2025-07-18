@@ -937,6 +937,26 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
       }
     });
     
+    // [PRODUCTION FIX] After match creation in /invite/accept, always emit 'matchFound' to both inviter and invitee sockets.
+    // Notify both users
+    if (userSockets) {
+      const inviterSocket = userSockets.get(fromUserId);
+      const inviteeSocket = userSockets.get(toUserId);
+      const payload = { matchId: match.id, gameType, betAmount, matchType };
+      if (inviterSocket) {
+        console.log('📡 Emitting matchFound to inviter:', fromUserId);
+        inviterSocket.emit('matchFound', payload);
+      } else {
+        console.warn('⚠️ Inviter socket not found:', fromUserId);
+      }
+      if (inviteeSocket) {
+        console.log('📡 Emitting matchFound to invitee:', toUserId);
+        inviteeSocket.emit('matchFound', payload);
+      } else {
+        console.warn('⚠️ Invitee socket not found:', toUserId);
+      }
+    }
+    
     console.log('✅ Invite accept completed successfully');
     res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
     
