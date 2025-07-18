@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const { Server } = require('socket.io');
+const socketioPkg = require('socket.io/package.json');
 const jwt = require('jsonwebtoken');
 const client = require('prom-client');
 const Redis = require('ioredis');
@@ -379,8 +380,16 @@ app.use(errorHandler);
 
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' } // Adjust for production!
+  cors: process.env.NODE_ENV === 'production' ? {
+    origin: [
+      'https://chanspaw.com',
+      'https://www.chanspaw.com',
+      // Add more allowed origins as needed
+    ],
+    credentials: true
+  } : { origin: '*' }
 });
+console.log(`[SOCKET.IO] Backend version: ${socketioPkg.version}`);
 
 // User-to-socket mapping
 const userSockets = new Map(); // userId -> socket
@@ -501,13 +510,20 @@ function checkTicTacToe5x5Winner(board) {
 // Socket.io authentication middleware (JWT validation)
 io.use((socket, next) => {
   const token = socket.handshake.auth && socket.handshake.auth.token;
-  if (!token) return next(new Error('Unauthorized: No token provided'));
+  if (!token) {
+    console.error('[SOCKET.IO] Unauthorized: No token provided', { handshake: socket.handshake });
+    return next(new Error('Unauthorized: No token provided'));
+  }
   let userId = null;
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     userId = payload.userId || payload.id || payload.sub;
-    if (!userId) return next(new Error('Unauthorized: Invalid token payload'));
+    if (!userId) {
+      console.error('[SOCKET.IO] Unauthorized: Invalid token payload', { payload });
+      return next(new Error('Unauthorized: Invalid token payload'));
+    }
   } catch (e) {
+    console.error('[SOCKET.IO] Unauthorized: Invalid token', { error: e.message, token });
     return next(new Error('Unauthorized: Invalid token'));
   }
   socket.userId = userId;
