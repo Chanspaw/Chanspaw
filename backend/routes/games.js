@@ -833,7 +833,7 @@ router.post('/invite', asyncHandler(async (req, res) => {
 
 // Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
-  console.log('🎯 Invite accept request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
+  console.log('🎯 [LOG] Invite accept request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
   try {
     const { fromUserId, gameType, matchType = 'real' } = req.body;
     const toUserId = req.user.id;
@@ -905,7 +905,7 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
         matchType
       }
     });
-    console.log('✅ Match created and committed:', match.id);
+    console.log('✅ [LOG] Match created and committed:', match);
     // Log match creation
     await prisma.auditLog.create({ data: { userId: null, action: 'MATCH_CREATED', details: JSON.stringify({ matchId: match.id, gameType, betAmount, player1Id: fromUserId, player2Id: toUserId, matchType }) } });
     // Notify both users
@@ -930,7 +930,7 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
     console.log('✅ Invite accept completed successfully, matchId:', match.id);
     res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
   } catch (error) {
-    console.error('❌ Error in invite accept:', error);
+    console.error('❌ [LOG] Error in invite accept:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 }));
@@ -1752,14 +1752,18 @@ router.use('*', (req, res) => {
 router.get('/match/:matchId', authenticateToken, async (req, res) => {
   const { matchId } = req.params;
   try {
+    console.log('🔍 [LOG] Fetching match:', matchId);
     const match = await prisma.match.findUnique({
       where: { id: matchId }
     });
     if (!match) {
+      console.log('❌ [LOG] Match not found for id:', matchId);
       return res.status(404).json({ success: false, error: 'Match not found' });
     }
+    console.log('✅ [LOG] Match found:', match);
     res.json({ success: true, match });
   } catch (error) {
+    console.error('❌ [LOG] Error fetching match:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch match' });
   }
 });
