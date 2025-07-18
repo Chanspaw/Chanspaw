@@ -834,36 +834,29 @@ router.post('/invite', asyncHandler(async (req, res) => {
 // Accept 1v1 invite (escrow bets)
 router.post('/invite/accept', asyncHandler(async (req, res) => {
   console.log('🎯 Invite accept request received:', { body: req.body, user: req.user?.id, path: req.path, method: req.method });
-  
   try {
     const { fromUserId, gameType, matchType = 'real' } = req.body;
     const toUserId = req.user.id;
-    
     if (!fromUserId || !gameType) {
       console.log('❌ Missing required fields:', { fromUserId, gameType });
       return res.status(400).json({ success: false, error: 'Missing required fields: fromUserId and gameType' });
     }
-    
     const redis = req.app.get('redis');
     if (!redis) {
       console.log('❌ Redis not available');
       return res.status(500).json({ success: false, error: 'Redis service not available' });
     }
-    
     const inviteKey = `invite:${toUserId}:${fromUserId}:${gameType}:${matchType}`;
     console.log('🔍 Looking for invite with key:', inviteKey);
-    
     const invite = await redis.get(inviteKey);
     if (!invite) {
       console.log('❌ Invite not found or expired');
       return res.status(404).json({ success: false, error: 'Invite not found or expired' });
     }
-    
     console.log('✅ Invite found:', invite);
     const { betAmount } = JSON.parse(invite);
     await redis.del(inviteKey);
     inviteStatusMap.set(inviteKey, { ...inviteStatusMap.get(inviteKey), status: 'accepted' });
-    
     // Escrow bets atomically
     try {
       await escrowBets({ player1Id: fromUserId, player2Id: toUserId, betAmount, currency: matchType, matchId: null, gameType });
@@ -871,26 +864,21 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
       console.log('❌ Escrow error:', err.message);
       return res.status(400).json({ success: false, error: err.message });
     }
-    
     // Check both balances
     const [p1, p2] = await Promise.all([
       prisma.user.findUnique({ where: { id: fromUserId } }),
       prisma.user.findUnique({ where: { id: toUserId } })
     ]);
-    
     if (!p1 || !p2) {
       console.log('❌ User not found:', { p1: !!p1, p2: !!p2 });
       return res.status(404).json({ success: false, error: 'One or both users not found' });
     }
-    
     const p1Balance = matchType === 'real' ? p1.real_balance : p1.virtual_balance;
     const p2Balance = matchType === 'real' ? p2.real_balance : p2.virtual_balance;
-    
     if (p1Balance < betAmount || p2Balance < betAmount) {
       console.log('❌ Insufficient balance:', { p1Balance, p2Balance, betAmount });
       return res.status(400).json({ success: false, error: 'One or both players have insufficient balance' });
     }
-    
     // Deduct from both
     if (matchType === 'real') {
       await prisma.user.update({ where: { id: fromUserId }, data: { real_balance: { decrement: betAmount } } });
@@ -899,12 +887,10 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
       await prisma.user.update({ where: { id: fromUserId }, data: { virtual_balance: { decrement: betAmount } } });
       await prisma.user.update({ where: { id: toUserId }, data: { virtual_balance: { decrement: betAmount } } });
     }
-    
     // Log audit
     await prisma.auditLog.create({ data: { userId: fromUserId, action: 'ESCROW_DEBIT', details: JSON.stringify({ matchType: gameType, betAmount, currency: matchType }) } });
     await prisma.auditLog.create({ data: { userId: toUserId, action: 'ESCROW_DEBIT', details: JSON.stringify({ matchType: gameType, betAmount, currency: matchType }) } });
-    
-    // Create match
+    // Create match and commit to DB
     const initialState = getInitialGameState(gameType, [fromUserId, toUserId]);
     const match = await prisma.match.create({
       data: {
@@ -919,47 +905,30 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
         matchType
       }
     });
-    
-    console.log('✅ Match created:', match.id);
-    
+    console.log('✅ Match created and committed:', match.id);
     // Log match creation
     await prisma.auditLog.create({ data: { userId: null, action: 'MATCH_CREATED', details: JSON.stringify({ matchId: match.id, gameType, betAmount, player1Id: fromUserId, player2Id: toUserId, matchType }) } });
-    
     // Notify both users
     const userSockets = req.app.get('userSockets');
-    [fromUserId, toUserId].forEach(uid => {
-      const sock = userSockets.get(uid);
-      if (sock) {
-        console.log('📡 Emitting matchFound to user:', uid);
-        sock.emit('matchFound', { matchId: match.id, gameType, betAmount, matchType });
-      } else {
-        console.log('⚠️ User socket not found:', uid);
-      }
-    });
-    
-    // [PRODUCTION FIX] After match creation in /invite/accept, always emit 'matchFound' to both inviter and invitee sockets.
-    // Notify both users
+    const payload = { matchId: match.id, gameType, betAmount, matchType };
     if (userSockets) {
       const inviterSocket = userSockets.get(fromUserId);
       const inviteeSocket = userSockets.get(toUserId);
-      const payload = { matchId: match.id, gameType, betAmount, matchType };
       if (inviterSocket) {
-        console.log('📡 Emitting matchFound to inviter:', fromUserId);
+        console.log('📡 Emitting matchFound to inviter:', fromUserId, payload);
         inviterSocket.emit('matchFound', payload);
       } else {
         console.warn('⚠️ Inviter socket not found:', fromUserId);
       }
       if (inviteeSocket) {
-        console.log('📡 Emitting matchFound to invitee:', toUserId);
+        console.log('📡 Emitting matchFound to invitee:', toUserId, payload);
         inviteeSocket.emit('matchFound', payload);
       } else {
         console.warn('⚠️ Invitee socket not found:', toUserId);
       }
     }
-    
-    console.log('✅ Invite accept completed successfully');
+    console.log('✅ Invite accept completed successfully, matchId:', match.id);
     res.json({ success: true, matchId: match.id, message: 'Match created by invite!' });
-    
   } catch (error) {
     console.error('❌ Error in invite accept:', error);
     res.status(500).json({ success: false, error: error.message });
