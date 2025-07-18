@@ -431,6 +431,13 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
     }
   }, [showResultModal, resultModalData.isDraw]);
 
+  const handlePromotionSelect = (piece: string) => {
+    if (!pendingMove || !currentMatchId) return;
+    sendMove(currentMatchId, { ...pendingMove, promotion: piece });
+    setPromotionModal(null);
+    setPendingMove(null);
+  };
+
   if (showBetModal && user) {
     return (
       <GameBetModal
@@ -651,11 +658,4 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
   }
 
   return null;
-} 
-
-function handlePromotionSelect(piece: string) {
-  if (!pendingMove || !currentMatchId) return;
-  sendMove(currentMatchId, { ...pendingMove, promotion: piece });
-  setPromotionModal(null);
-  setPendingMove(null);
 } 
