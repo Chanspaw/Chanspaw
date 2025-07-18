@@ -12,55 +12,52 @@ async function generateUserId(existingIds = new Set()) {
   return newId;
 }
 
-async function createAdmin() {
-  try {
-    // Check if admin already exists
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: 'admin@chanspaw.com' }
+async function main() {
+  const email = process.argv[2];
+  const password = process.argv[3];
+  if (!email || !password) {
+    console.error('Usage: node create-admin.js <email> <password>');
+    process.exit(1);
+  }
+  const hashedPassword = await bcrypt.hash(password, 10);
+  let user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword, isAdmin: true, isActive: true }
     });
-
-    if (existingAdmin) {
-      console.log('Admin user already exists!');
-      return;
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash('Chanspaw@2025!', 10);
-
-    // Create admin user
+    console.log(`Admin user updated: ${email}`);
+  } else {
+    // Generate unique user ID
     const users = await prisma.user.findMany({ select: { id: true } });
-    const existingIds = new Set(users.map(u => u.id));
-    const newId = generateUserId(existingIds);
-
-    const admin = await prisma.user.create({
+    let newId = 'CHS-000-USR';
+    if (users.length > 0) {
+      const ids = users.map(u => u.id).filter(id => /^CHS-\d{3}-USR$/.test(id));
+      const nums = ids.map(id => parseInt(id.split('-')[1], 10)).filter(n => !isNaN(n));
+      const max = nums.length > 0 ? Math.max(...nums) : 0;
+      newId = `CHS-${String(max + 1).padStart(3, '0')}-USR`;
+    }
+    user = await prisma.user.create({
       data: {
-        id: 'CHS-000-USR',
-        email: 'admin@chanspaw.com',
-        username: 'admin',
+        id: newId,
+        email,
+        username: email.split('@')[0],
         password: hashedPassword,
-        firstName: 'Admin',
-        lastName: 'User',
         isAdmin: true,
-        isVerified: true,
         isActive: true,
+        isVerified: true,
         real_balance: 0,
-        virtual_balance: 0
+        virtual_balance: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     });
-
-    console.log('Admin user created successfully!');
-    console.log('Email: admin@chanspaw.com');
-    console.log('Password: Chanspaw@2025!');
-    console.log('User ID:', admin.id);
-
-  } catch (error) {
-    console.error('Error creating admin:', error);
-  } finally {
-    await prisma.$disconnect();
+    console.log(`Admin user created: ${email} (id: ${newId})`);
   }
+  await prisma.$disconnect();
 }
 
-createAdmin();
+main().catch(e => { console.error(e); process.exit(1); });
 
 // Script to set admin@chanspaw.com as the platform owner
 async function setOwner() {

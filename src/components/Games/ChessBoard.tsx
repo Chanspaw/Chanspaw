@@ -90,11 +90,11 @@ export function ChessBoard({
   );
 
   return (
-    <div className="relative">
+    <div className="relative w-full flex flex-col items-center justify-center">
       {/* Board Container */}
-      <div className="relative bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-2 sm:p-4 shadow-2xl border border-gray-700 overflow-x-auto">
+      <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg aspect-square mx-auto bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-2 sm:p-4 shadow-2xl border border-gray-700 flex items-center justify-center overflow-hidden">
         {/* Board Grid */}
-        <div className="grid grid-cols-8 gap-0.5 w-full max-w-[96vw] sm:max-w-[480px] mx-auto game-board-mobile">
+        <div className="grid grid-cols-8 gap-0.5 w-full h-full aspect-square game-board-mobile">
           {ranks.map((rank) =>
             files.map((file) => {
               const square = `${file}${rank}`;
@@ -106,7 +106,7 @@ export function ChessBoard({
                 <motion.div
                   key={square}
                   className={classNames(
-                    'relative w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16',
+                    'relative w-full h-full min-w-0 min-h-0',
                     'flex items-center justify-center cursor-pointer',
                     'transition-all duration-200 ease-in-out',
                     'hover:shadow-lg hover:scale-105',
@@ -120,20 +120,18 @@ export function ChessBoard({
                   onClick={() => isMyTurn && onCellClick(square)}
                   whileHover={isMyTurn ? { scale: 1.05 } : {}}
                   whileTap={isMyTurn ? { scale: 0.95 } : {}}
+                  style={{ aspectRatio: '1 / 1' }}
                 >
                   {/* Legal Move Indicator */}
                   {isLegalMove(square) && renderLegalMoveIndicator()}
-                  
                   {/* Last Move Indicator */}
                   {isLastMove(square) && renderLastMoveIndicator()}
-                  
                   {/* Piece */}
                   {cell?.piece && (
                     <div className="relative z-10 w-full h-full p-1">
                       {renderPiece(cell.piece)}
                     </div>
                   )}
-                  
                   {/* Square Label (for debugging) */}
                   {process.env.NODE_ENV === 'development' && (
                     <div className="absolute bottom-0 right-0 text-xs text-gray-500 opacity-50">
@@ -145,22 +143,19 @@ export function ChessBoard({
             })
           )}
         </div>
-
         {/* Board Border Glow */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 pointer-events-none" />
       </div>
-
       {/* File Labels */}
-      <div className="flex justify-between mt-2 px-4">
+      <div className="flex justify-between mt-2 px-4 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto">
         {files.map((file) => (
           <span key={file} className="text-gray-400 text-sm font-mono">
             {file}
           </span>
         ))}
       </div>
-
       {/* Rank Labels */}
-      <div className="absolute left-0 top-4 bottom-4 flex flex-col justify-between py-4">
+      <div className="absolute left-0 top-4 bottom-4 flex flex-col justify-between py-4 pointer-events-none select-none w-6">
         {ranks.map((rank) => (
           <span key={rank} className="text-gray-400 text-sm font-mono">
             {rank}

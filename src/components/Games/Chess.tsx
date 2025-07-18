@@ -254,26 +254,13 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
     };
   }, [currentMatchId, user?.id, chessEngine]);
 
-  // Helper to convert algebraic to backend coordinates
-  function algebraicToCoords(square: string) {
-    // 'a' = 0, 'b' = 1, ..., 'h' = 7; ranks: '1' = 7, '8' = 0
-    const file = square.charCodeAt(0) - 'a'.charCodeAt(0);
-    const rank = 8 - parseInt(square[1]);
-    return [file, rank];
-  }
-
   // Replace sendMove logic (add this function)
   function sendMove(matchId: string, move: { from: string; to: string; promotion?: string }) {
     if (!socket || !matchId) return;
-    // Convert move to backend format
-    const backendMove = {
-      from: algebraicToCoords(move.from),
-      to: algebraicToCoords(move.to),
-      ...(move.promotion ? { promotion: move.promotion } : {})
-    };
+    // Send move in algebraic notation as expected by chess.js backend
     socket.emit('makeMove', {
       matchId,
-      move: backendMove,
+      move,
       gameType: 'chess'
     });
   }
