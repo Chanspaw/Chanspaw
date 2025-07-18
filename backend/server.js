@@ -1678,25 +1678,31 @@ io.on('connection', async (socket) => {
         const toRank = parseInt(move.to[1], 10);
         return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
       })();
+      console.log(`[CHESS] Attempting move:`, { move, moveObj, isPawnPromotion, fen: chess.fen() });
       if (isPawnPromotion) {
         if (!move.promotion || !['q','r','b','n'].includes(move.promotion)) {
           socket.emit('promotionRequired', { from: move.from, to: move.to });
+          console.warn(`[CHESS] Promotion required but not provided or invalid. Move:`, move);
           return;
         }
         moveObj.promotion = move.promotion;
       } else if (move.promotion) {
-        moveObj.promotion = move.promotion;
+        // Only allow promotion field for pawn promotions
+        socket.emit('error', { message: 'Promotion is only allowed for pawn moves to last rank.' });
+        console.warn(`[CHESS] Promotion field sent for non-pawn or non-promotion move. Move:`, move);
+        return;
       }
       let result;
       try {
         result = chess.move(moveObj);
         if (!result) {
-          socket.emit('error', { message: 'Illegal move' });
+          socket.emit('error', { message: 'Illegal move', fen: chess.fen(), move: moveObj });
+          console.warn(`[CHESS] Illegal move attempted. FEN: ${chess.fen()} Move:`, moveObj);
           return;
         }
       } catch (err) {
-        console.error('[CHESS] Move error:', err);
-        socket.emit('error', { message: 'Invalid move' });
+        console.error('[CHESS] Move error:', err, { fen: chess.fen(), move: moveObj });
+        socket.emit('error', { message: 'Invalid move', fen: chess.fen(), move: moveObj });
         return;
       }
       
