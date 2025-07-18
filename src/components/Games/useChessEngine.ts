@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Chess as ChessJS } from 'chess.js';
 
 interface ChessPiece {
   type: 'pawn' | 'rook' | 'knight' | 'bishop' | 'queen' | 'king';
@@ -103,6 +104,45 @@ export function useChessEngine() {
 
   const initializeGame = useCallback(() => {
     setGameState(createInitialGameState());
+  }, []);
+
+  const setFEN = useCallback((fen: string) => {
+    const chess = new ChessJS(fen);
+    const board: { [key: string]: BoardCell } = {};
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    for (let rank = 8; rank >= 1; rank--) {
+      for (let file = 0; file < 8; file++) {
+        const square = files[file] + rank;
+        const piece = chess.get(square as any);
+        board[square] = {
+          piece: piece
+            ? {
+                type:
+                  piece.type === 'n'
+                    ? 'knight'
+                    : piece.type === 'q'
+                    ? 'queen'
+                    : piece.type === 'r'
+                    ? 'rook'
+                    : piece.type === 'b'
+                    ? 'bishop'
+                    : piece.type === 'k'
+                    ? 'king'
+                    : 'pawn',
+                color: piece.color === 'w' ? 'white' : 'black',
+                hasMoved: undefined // Not tracked from FEN
+              }
+            : null,
+          position: square
+        };
+      }
+    }
+    setGameState(prev => ({
+      ...prev,
+      board,
+      currentPlayer: chess.turn() === 'w' ? 'white' : 'black',
+      // Optionally update king/rook positions if needed
+    }));
   }, []);
 
   const getSquareCoordinates = (square: string): { file: number; rank: number } => {
@@ -488,6 +528,7 @@ export function useChessEngine() {
     isDraw,
     resetGame,
     setBoard,
+    setFEN,
     initializeGame,
     getPieceAt,
     isSquareOccupied,

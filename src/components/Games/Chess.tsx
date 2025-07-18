@@ -149,7 +149,7 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
   useEffect(() => {
     const socket = getSocket();
 
-    function onGameStart(data: { matchId: string; opponentId: string; yourTurn: boolean; stake: number; timeLimit: number; board?: any; color?: 'white' | 'black' }) {
+    function onGameStart(data: { matchId: string; opponentId: string; yourTurn: boolean; stake: number; timeLimit: number; fen?: string; color?: 'white' | 'black' }) {
       setCurrentMatchId(data.matchId);
       setOpponentId(data.opponentId);
       setIsMyTurn(data.yourTurn);
@@ -158,34 +158,32 @@ export function Chess({ onGameEnd, matchId, opponent, stake = 100, gameMode = 'o
       setShowBetModal(false);
       setIsInWaitingRoom(false);
       if (data.color) setPlayerColor(data.color);
-      // Initialize chess board with server data or default
-      if (data.board) {
-        chessEngine.setBoard(data.board);
+      if (data.fen) {
+        chessEngine.setFEN(data.fen);
       } else {
         chessEngine.initializeGame();
       }
     }
 
-    function onYourTurn(data: { matchId: string; move: any; gameType: string; board: any; opponentId: string; yourTurn?: boolean; currentTurnPlayerId?: string }) {
+    function onYourTurn(data: { matchId: string; move: any; gameType: string; fen?: string; opponentId: string; yourTurn?: boolean; currentTurnPlayerId?: string }) {
       if (data.matchId === currentMatchId) {
         if (typeof data.yourTurn === 'boolean') {
-      setIsMyTurn(data.yourTurn);
+          setIsMyTurn(data.yourTurn);
         } else if (data.currentTurnPlayerId && user?.id) {
           setIsMyTurn(data.currentTurnPlayerId === user.id);
         } else {
           setIsMyTurn(true);
         }
-        if (data.board) {
-          chessEngine.setBoard(data.board);
+        if (data.fen) {
+          chessEngine.setFEN(data.fen);
         }
       }
     }
 
-    function onMoveMade(data: { matchId: string; move: any; gameType: string; board: any; opponentId: string; currentTurnPlayerId?: string }) {
+    function onMoveMade(data: { matchId: string; move: any; gameType: string; fen?: string; opponentId: string; currentTurnPlayerId?: string }) {
       if (data.matchId !== currentMatchId) return;
-      
-      if (data.board) {
-        chessEngine.setBoard(data.board);
+      if (data.fen) {
+        chessEngine.setFEN(data.fen);
       }
       
       if (data.currentTurnPlayerId && user?.id) {
