@@ -49,6 +49,7 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
   const [gameSelectModalOpen, setGameSelectModalOpen] = useState(false);
   const [pendingInviteFriend, setPendingInviteFriend] = useState<OnlineFriend | null>(null);
   const { t } = useTranslation();
+  // [FIX] Ensure all invite creation, selection, and matchFound handling use backend canonical gameType values.
   const gameOptions = [
     { value: 'chess', label: t('games.chess') },
     { value: 'connect_four', label: t('games.connectFour') },
@@ -56,6 +57,8 @@ const Friends: React.FC<FriendsProps> = ({ onNavigateToGame }) => {
     { value: 'tic_tac_toe', label: t('games.ticTacToe5x5') },
     { value: 'dice_battle', label: t('games.diceBattle') },
   ];
+  // When sending invites, always use these values for gameType.
+  // When handling matchFound, do not remap gameType, just use matchId for navigation.
   const navigate = useNavigate();
 
   // Load data on component mount
