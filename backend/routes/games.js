@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+console.log('🔗 [DB] DATABASE_URL:', process.env.DATABASE_URL);
 
 // Get Redis and rate limiters from app
 function getRedis(req) { return req.app.get('redis'); }
@@ -893,6 +894,7 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
     // Create match and commit to DB with explicit UUID
     const matchId = uuidv4();
     const initialState = getInitialGameState(gameType, [fromUserId, toUserId]);
+    console.log('📝 [LOG] Creating match with id:', matchId);
     const match = await prisma.match.create({
       data: {
         id: matchId,
@@ -908,6 +910,7 @@ router.post('/invite/accept', asyncHandler(async (req, res) => {
         inviteId: invite.id,
       },
     });
+    console.log('✅ [LOG] Match created:', match.id);
     // Immediately fetch the match to confirm it exists
     const confirmedMatch = await prisma.match.findUnique({ where: { id: match.id } });
     if (!confirmedMatch) {
@@ -1748,7 +1751,7 @@ router.use('*', (req, res) => {
 // Get match info by matchId
 router.get('/match/:matchId', asyncHandler(async (req, res) => {
   const { matchId } = req.params;
-  console.log('🔍 [LOG] Fetching match:', matchId);
+  console.log('🔍 [LOG] Fetching match:', matchId, '| DB:', process.env.DATABASE_URL);
   try {
     const match = await prisma.match.findUnique({ where: { id: matchId } });
     if (!match) {
