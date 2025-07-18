@@ -21,7 +21,7 @@
   "license": "ISC",
   "dependencies": {
     "@headlessui/react": "^2.2.4",
-    "@prisma/client": "^6.10.1",
+    "@prisma/client": "^6.12.0",
     "bcrypt": "^5.1.1",
     "chanspaw-platform": "file:..",
     "chess.js": "^1.0.0",
@@ -33,7 +33,7 @@
     "ioredis": "^5.6.1",
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
-    "prisma": "^6.10.1",
+    "prisma": "^6.12.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
     "uuid": "^11.1.0"
