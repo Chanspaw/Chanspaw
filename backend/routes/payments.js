@@ -1,7 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { asyncHandler } = require('../middleware/errorHandler');
-const { payoutWinnings } = require('../services/walletService');
+const { payoutWinnings, createNowPaymentsDeposit, sendNowPaymentsPayout } = require('../services/walletService');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -27,6 +27,11 @@ router.post('/deposit', asyncHandler(async (req, res) => {
   }
   if (!depositMethod) {
     return res.status(400).json({ success: false, error: 'Deposit method is required' });
+  }
+  if (depositMethod === 'crypto') {
+    // Create a NOWPayments deposit address and return it to the frontend
+    const payment = await createNowPaymentsDeposit({ amount, payCurrency: accountDetails?.payCurrency || 'usdttrc20' });
+    return res.json({ success: true, data: payment });
   }
   // Create deposit transaction and update balance
   const transactionId = `dep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -89,6 +94,17 @@ router.post('/withdraw', asyncHandler(async (req, res) => {
       success: false,
       error: 'Withdrawal method is required'
     });
+  }
+
+  if (withdrawalMethod === 'crypto') {
+    // Send payout via NOWPayments
+    const payout = await sendNowPaymentsPayout({
+      address: accountDetails?.cryptoAddress,
+      amount,
+      currency: accountDetails?.payCurrency || 'usdttrc20'
+    });
+    // Mark withdrawal as completed if successful
+    return res.json({ success: true, data: payout });
   }
 
   // Vérifier le solde de l'utilisateur
