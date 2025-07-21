@@ -33,6 +33,8 @@ export function WalletDashboard() {
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  // Add state for crypto deposit result
+  const [cryptoDepositInfo, setCryptoDepositInfo] = useState<any>(null);
 
   // Add this helper function for deposit
   async function depositFunds(amount: number, depositMethod: string, accountDetails: any) {
@@ -111,7 +113,10 @@ export function WalletDashboard() {
       const accountDetails = {};
       const response = await depositFunds(amount, paymentMethod, accountDetails);
       if (response.success) {
-        alert(`Deposit initiated successfully! Transaction ID: ${response.data?.transactionId}`);
+        if (paymentMethod === 'crypto') {
+          setCryptoDepositInfo(response.data);
+          return; // Don't close modal, show crypto info
+        }
         setShowDepositModal(false);
         setDepositAmount('');
         setPaymentMethod('Credit Card');
@@ -360,12 +365,16 @@ export function WalletDashboard() {
                 </label>
                 <select 
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  onChange={(e) => {
+                    setPaymentMethod(e.target.value);
+                    setCryptoDepositInfo(null); // Reset crypto info if switching method
+                  }}
                   className="w-full p-3 rounded bg-neutral-800 text-white border border-neutral-700"
                 >
                   <option value="Credit Card">Credit Card</option>
                   <option value="Debit Card">Debit Card</option>
                   <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="crypto">Crypto</option>
                 </select>
               </div>
               
@@ -460,6 +469,25 @@ export function WalletDashboard() {
                   Cancel
                 </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* After the deposit form, show crypto deposit info if present */}
+      {cryptoDepositInfo && paymentMethod === 'crypto' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-neutral-900 rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold text-white mb-4">Crypto Deposit Address</h2>
+            <p>Send exactly <b>{cryptoDepositInfo.pay_amount} {cryptoDepositInfo.pay_currency}</b> to:</p>
+            <p className="break-all font-mono text-green-400 text-lg mt-2">{cryptoDepositInfo.pay_address}</p>
+            {cryptoDepositInfo.payin_extra_id && (
+              <p className="text-yellow-400">Memo/Tag: {cryptoDepositInfo.payin_extra_id}</p>
+            )}
+            {cryptoDepositInfo.qr_code && (
+              <img src={cryptoDepositInfo.qr_code} alt="QR Code" className="mt-2 w-32 h-32" />
+            )}
+            <p className="text-xs text-gray-400 mt-2">Once payment is confirmed, your balance will be updated automatically.</p>
+            <button onClick={() => { setCryptoDepositInfo(null); setShowDepositModal(false); setDepositAmount(''); setPaymentMethod('Credit Card'); }} className="mt-4 bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded">Done</button>
           </div>
         </div>
       )}
