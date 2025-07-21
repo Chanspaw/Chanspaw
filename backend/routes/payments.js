@@ -577,4 +577,9 @@ router.post('/virtual-reset', asyncHandler(async (req, res) => {
 // All payout and balance update logic is now handled by payoutService.js
 // Only keep unrelated endpoints (e.g., balance check, admin withdrawals, etc).
 
+// CSRF token endpoint for frontend
+router.get('/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
 module.exports = router; 

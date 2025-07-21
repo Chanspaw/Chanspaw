@@ -9,6 +9,16 @@ import {
   PaymentAPIResponse 
 } from '../types/payment';
 
+// Helper to fetch CSRF token
+async function getCsrfToken() {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/csrf-token`, {
+    credentials: 'include'
+  });
+  if (!response.ok) throw new Error('Failed to fetch CSRF token');
+  const data = await response.json();
+  return data.csrfToken || data.token || data._csrf || '';
+}
+
 export class PaymentAPI {
   static async getWalletBalance(): Promise<PaymentAPIResponse<WalletBalance>> {
     const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
@@ -36,14 +46,35 @@ export class PaymentAPI {
     return { success: true, data: data.data.paymentMethods };
   }
 
+  static async createDeposit(amount: number, depositMethod: string, accountDetails: any): Promise<PaymentAPIResponse<any>> {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const csrfToken = await getCsrfToken();
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/deposit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      credentials: 'include',
+      body: JSON.stringify({ amount, depositMethod, accountDetails })
+    });
+    const data = await response.json();
+    if (!response.ok) return { success: false, error: data.error || 'Failed to create deposit' };
+    return { success: true, data: data.data };
+  }
+
   static async createWithdrawal(amount: number | string, withdrawalMethod: string, accountDetails: any): Promise<PaymentAPIResponse<any>> {
     const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const csrfToken = await getCsrfToken();
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/withdraw`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
       },
+      credentials: 'include',
       body: JSON.stringify({ amount: Number(amount), withdrawalMethod, accountDetails })
     });
     const data = await response.json();
