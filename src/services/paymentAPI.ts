@@ -36,7 +36,7 @@ export class PaymentAPI {
     return { success: true, data: data.data.paymentMethods };
   }
 
-  static async createWithdrawal(amount: number, withdrawalMethod: string, accountDetails: any): Promise<PaymentAPIResponse<any>> {
+  static async createWithdrawal(amount: number | string, withdrawalMethod: string, accountDetails: any): Promise<PaymentAPIResponse<any>> {
     const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/withdraw`, {
       method: 'POST',
@@ -44,7 +44,7 @@ export class PaymentAPI {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ amount, withdrawalMethod, accountDetails })
+      body: JSON.stringify({ amount: Number(amount), withdrawalMethod, accountDetails })
     });
     const data = await response.json();
     if (!response.ok) return { success: false, error: data.error || 'Failed to create withdrawal' };
