@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { sendNowPaymentsPayout } = require('./walletService');
 
 class OwnerProfitService {
   // Calculate platform profits from PlatformRevenue
@@ -131,7 +132,7 @@ class OwnerProfitService {
     }
   }
 
-  // Process owner withdrawal (approve/reject)
+  // Process owner withdrawal (approve/reject/crypto)
   async processOwnerWithdrawal(withdrawalId, action, adminId, reason = null) {
     try {
       const withdrawal = await prisma.ownerWithdrawal.findUnique({ where: { id: withdrawalId } });
@@ -155,6 +156,33 @@ class OwnerProfitService {
       return updatedWithdrawal;
     } catch (error) {
       console.error('Error processing owner withdrawal:', error);
+      throw error;
+    }
+  }
+
+  // Process owner withdrawal via NOWPayments (crypto payout)
+  async processOwnerCryptoWithdrawal(withdrawalId) {
+    try {
+      const withdrawal = await prisma.ownerWithdrawal.findUnique({ where: { id: withdrawalId } });
+      if (!withdrawal) throw new Error('Withdrawal not found');
+      if (withdrawal.status !== 'PENDING') throw new Error('Withdrawal is not in pending status');
+      const accountDetails = withdrawal.accountDetails ? JSON.parse(withdrawal.accountDetails) : {};
+      const payout = await sendNowPaymentsPayout({
+        address: accountDetails.cryptoAddress,
+        amount: withdrawal.amount,
+        currency: accountDetails.payCurrency || 'usdttrc20'
+      });
+      await prisma.ownerWithdrawal.update({
+        where: { id: withdrawalId },
+        data: {
+          status: 'COMPLETED',
+          processedAt: new Date(),
+          reason: 'Processed via NOWPayments',
+        }
+      });
+      return payout;
+    } catch (error) {
+      console.error('Error processing owner crypto withdrawal:', error);
       throw error;
     }
   }

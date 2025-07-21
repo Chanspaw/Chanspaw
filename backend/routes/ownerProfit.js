@@ -165,6 +165,16 @@ router.get('/withdrawals/:id', asyncHandler(async (req, res) => {
   });
 }));
 
+// Process owner withdrawal via NOWPayments (crypto payout) (Admin only)
+router.put('/withdrawals/:id/crypto-process', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const payout = await ownerProfitService.processOwnerCryptoWithdrawal(id);
+  res.json({
+    success: true,
+    data: payout
+  });
+}));
+
 // Get current owner wallet balance (Admin only)
 router.get('/wallet-balance', asyncHandler(async (req, res) => {
   const balance = await ownerProfitService.getOwnerWalletBalance();
