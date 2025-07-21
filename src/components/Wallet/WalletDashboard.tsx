@@ -34,6 +34,20 @@ export function WalletDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Add this helper function for deposit
+  async function depositFunds(amount: number, depositMethod: string, accountDetails: any) {
+    const token = localStorage.getItem('chanspaw_access_token') || localStorage.getItem('token');
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/deposit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ amount, depositMethod, accountDetails })
+    });
+    return response.json();
+  }
+
   // Load wallet data on component mount
   useEffect(() => {
     if (user?.id) {
@@ -94,9 +108,10 @@ export function WalletDashboard() {
     }
     setIsProcessing(true);
     try {
-      const response = await PaymentAPI.createDeposit(user!.id, amount, '1'); // Using Stripe
+      const accountDetails = {};
+      const response = await depositFunds(amount, paymentMethod, accountDetails);
       if (response.success) {
-        alert(`Deposit initiated successfully! Transaction ID: ${response.data?.id}`);
+        alert(`Deposit initiated successfully! Transaction ID: ${response.data?.transactionId}`);
         setShowDepositModal(false);
         setDepositAmount('');
         setPaymentMethod('Credit Card');
@@ -115,7 +130,7 @@ export function WalletDashboard() {
 
   const handleWithdraw = async () => {
     const amount = Number(withdrawAmount);
-    if (amount <= 0) {
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
       alert('Please enter a valid amount greater than $0');
       return;
     }
@@ -135,9 +150,8 @@ export function WalletDashboard() {
         bankName: 'Sample Bank'
       };
       const response = await PaymentAPI.createWithdrawal(
-        user!.id, 
-        amount, 
-        withdrawalMethod, 
+        amount, // always a number
+        withdrawalMethod,
         accountDetails
       );
       if (response.success) {
